@@ -1,0 +1,5 @@
+interface:
+  display_name: "Quilla External Intelligence"
+  short_description: "Pesquisa externa governada com Web Search"
+  default_prompt: "Use $quilla-external-intelligence para pesquisar sinais externos atuais com fontes verificáveis."
+  brand_color: "#5865F2"

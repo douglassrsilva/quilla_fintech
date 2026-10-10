@@ -1,0 +1,220 @@
+bundle:
+  name: quilla-financial-intelligence
+
+include:
+  - resources/*.yml
+
+sync:
+  include:
+    - .generated/**
+  exclude:
+    - genie_spaces/**
+    - dashboards/*.lvdash.json
+    - mlruns/**
+    - mlflow.db
+    - identity-preview.html
+    - frontend/node_modules/**
+    - tests/**
+
+variables:
+  catalog:
+    description: Required Unity Catalog catalog. Supply with --var or DATABRICKS_BUNDLE_VAR_catalog.
+  schema:
+    description: Required schema for raw synthetic assets.
+  bronze_schema:
+    description: Required Unity Catalog schema for Auto Loader streaming tables.
+  silver_schema:
+    description: Required Unity Catalog schema for contract-validated data products.
+  gold_schema:
+    description: Required Unity Catalog schema for materialized and metric views.
+  governance_schema:
+    description: Required Unity Catalog schema for classification specifications and governance evidence.
+  monitoring_schema:
+    description: Required Unity Catalog schema for Data Quality Monitoring profile and drift metrics.
+  volume:
+    description: Required Unity Catalog Volume used as the Parquet landing zone.
+  snapshot:
+    description: Immutable logical snapshot date.
+    default: "2026-08-31"
+  seed:
+    description: Deterministic generation seed.
+    default: "42"
+  event_rows:
+    default: "13758648"
+  party_rows:
+    default: "144000"
+  account_rows:
+    default: "240000"
+  card_rows:
+    default: "160000"
+  merchant_rows:
+    default: "20000"
+  device_rows:
+    default: "150000"
+  receivable_rows:
+    default: "300000"
+  credit_case_rows:
+    default: "120000"
+  insurance_case_rows:
+    default: "60000"
+  risk_alert_rows:
+    default: "206380"
+  consent_rows:
+    default: "300000"
+  interaction_rows:
+    default: "100000"
+  document_rows:
+    default: "25000"
+  sql_warehouse_id:
+    description: Required SQL Warehouse ID used to create and validate Metric Views.
+  zerobus_endpoint:
+    description: Required regional Zerobus Ingest endpoint for the workspace.
+  zerobus_secret_scope:
+    description: Workspace secret scope bootstrapped for the Zerobus producer.
+    default: quilla-zerobus
+  ml_schema:
+    description: Required Unity Catalog schema for Feature Store, MLflow evidence and registered models.
+  ml_volume:
+    description: Required governed Volume for immutable ML outcome and scenario data.
+  ml_snapshot:
+    description: Logical snapshot for ML datasets and evidence isolation.
+    default: "2026-08-31"
+  ml_credit_case_rows:
+    default: "120000"
+  ml_party_rows:
+    default: "144000"
+  ml_session_rows:
+    default: "1200000"
+  ml_risk_alert_rows:
+    default: "206380"
+  ml_insurance_case_rows:
+    default: "60000"
+  ml_pricing_rows:
+    default: "720000"
+  ml_profile_rows:
+    default: "72000"
+  ml_investment_event_rows:
+    default: "1200000"
+  ml_event_rows:
+    default: "13758648"
+  ml_interaction_rows:
+    default: "100000"
+  ai_schema:
+    description: Required Unity Catalog schema for governed PT/ES knowledge and AI Search evidence.
+  lakebase_project:
+    description: Lakebase Autoscaling project used for Quilla LTAP application state.
+    default: quilla-ltap
+  lakebase_database:
+    description: PostgreSQL database inside the Quilla Lakebase project.
+    default: quilla
+  lakebase_database_resource_id:
+    description: Required Lakebase API resource ID whose physical database is lakebase_database.
+  lakebase_owner_role:
+    description: Required Lakebase role that owns the API database resource.
+  lakebase_branch:
+    description: Lakebase branch used by the conversation ledger.
+    default: production
+  lakebase_endpoint:
+    description: Lakebase read-write endpoint used by the conversation ledger.
+    default: primary
+  vector_search_endpoint:
+    description: Vector Search endpoint for hybrid regulatory retrieval.
+    default: quilla-ai-search
+  embedding_endpoint:
+    description: Multilingual embedding endpoint used by Delta Sync.
+    default: databricks-qwen3-embedding-0-6b
+  ai_prep_docs_per_segment:
+    description: Documents per country/language/topic segment processed by AI Prep Search.
+    default: "5"
+  ai_enrich_docs_per_segment:
+    description: Documents per country/language/topic segment processed by grounded AI Enrich.
+    default: "1"
+  ai_quality_results_per_query:
+    description: Top-k used by the reproducible AI Search quality evaluation.
+    default: "10"
+  genai_eval_release:
+    description: Immutable logical release identifier for offline GenAI evaluation evidence.
+    default: "2026-09-01-v1"
+  genai_semantic_rows:
+    description: Stratified golden records evaluated by semantic LLM judges.
+    default: "12"
+  genai_review_release:
+    description: Immutable release identifier for the rich human-review trace battery.
+    default: "2026-09-01-rich-v1"
+  agent_release:
+    description: Immutable candidate release for the governed multi-agent foundation.
+    default: "2026-09-02-open-weight-v2"
+  agent_model_endpoint:
+    description: Primary open-weight Unity AI Gateway endpoint used by the agent runtime.
+    default: databricks-glm-5-3
+  supervisor_model_name:
+    description: Unity Catalog registered model for the custom Quilla supervisor.
+    default: quilla_custom_supervisor
+  guard_judge_model_service:
+    description: Unity Catalog Model Service used by AI Gateway content policies.
+    default: quilla-guard-judge
+  primary_model_service:
+    description: Governed Unity AI Gateway service used by the supervisor specialist.
+    default: quilla-supervisor-primary
+  primary_fallback_model:
+    description: Open-weight fallback destination for the primary supervisor Model Service.
+    default: databricks-qwen35-122b-a10b
+  verifier_model_service:
+    description: Governed Unity AI Gateway service used for independent verification.
+    default: quilla-supervisor-verifier
+  long_context_model_service:
+    description: Governed Unity AI Gateway service used for long conversations.
+    default: quilla-supervisor-long-context
+  supervisor_endpoint_name:
+    description: Model Serving endpoint for the custom Quilla supervisor.
+    default: quilla-custom-supervisor
+  supervisor_release:
+    description: Immutable release identifier for the custom supervisor runtime.
+    default: "2026-09-04-custom-supervisor-v23-long-financial-fallback"
+
+targets:
+  smoke:
+    default: true
+    mode: development
+    workspace:
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      snapshot: "smoke-2026-08-31"
+      event_rows: "12000"
+      party_rows: "1200"
+      account_rows: "2400"
+      card_rows: "1600"
+      merchant_rows: "240"
+      device_rows: "1500"
+      receivable_rows: "3000"
+      credit_case_rows: "1200"
+      insurance_case_rows: "600"
+      risk_alert_rows: "240"
+      consent_rows: "3000"
+      interaction_rows: "1200"
+      document_rows: "300"
+      ml_snapshot: "smoke-2026-08-31"
+      ml_credit_case_rows: "1200"
+      ml_party_rows: "1200"
+      ml_session_rows: "12000"
+      ml_risk_alert_rows: "240"
+      ml_insurance_case_rows: "600"
+      ml_pricing_rows: "7200"
+      ml_profile_rows: "1200"
+      ml_investment_event_rows: "12000"
+      ml_event_rows: "12000"
+      ml_interaction_rows: "1200"
+      ai_prep_docs_per_segment: "1"
+      ai_enrich_docs_per_segment: "1"
+      ai_quality_results_per_query: "5"
+      genai_eval_release: "smoke-2026-09-01-v1"
+      genai_semantic_rows: "6"
+      genai_review_release: "smoke-2026-09-01-rich-v1"
+      agent_release: "smoke-2026-09-02-open-weight-v2"
+      supervisor_endpoint_name: quilla-custom-supervisor-smoke
+      supervisor_release: "smoke-2026-09-03-custom-supervisor-v10-lakebase-memory"
+
+  demo:
+    mode: production
+    workspace:
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}

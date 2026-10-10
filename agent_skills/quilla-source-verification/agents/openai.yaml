@@ -1,0 +1,5 @@
+interface:
+  display_name: "Quilla Source Verification"
+  short_description: "Validação de fontes, datas e evidências"
+  default_prompt: "Use $quilla-source-verification para validar fontes, datas e divergências antes da síntese."
+  brand_color: "#20D3BC"

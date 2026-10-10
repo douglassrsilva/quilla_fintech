@@ -1,0 +1,203 @@
+resources:
+  jobs:
+    synthetic_raw_data:
+      name: "[${bundle.target}] Quilla | Synthetic Raw Parquet"
+      description: Generates the governed PT/ES synthetic landing snapshot for Quilla.
+      max_concurrent_runs: 1
+      timeout_seconds: 14400
+      queue:
+        enabled: true
+      tags:
+        project: quilla
+        layer: raw
+        workload: synthetic-data
+        data_classification: synthetic
+        managed_by: dabs
+
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+        - name: volume
+          default: ${var.volume}
+        - name: snapshot
+          default: ${var.snapshot}
+        - name: seed
+          default: ${var.seed}
+
+      tasks:
+        - task_key: setup_volume
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/00_setup_volume.py
+            source: WORKSPACE
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              volume: ${var.volume}
+              snapshot: ${var.snapshot}
+              seed: ${var.seed}
+          environment_key: serverless_env
+          max_retries: 2
+          min_retry_interval_millis: 30000
+
+        - task_key: generate_reference
+          depends_on:
+            - task_key: setup_volume
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/01_generate_reference.py
+            source: WORKSPACE
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              volume: ${var.volume}
+              snapshot: ${var.snapshot}
+              seed: ${var.seed}
+          environment_key: serverless_env
+          max_retries: 2
+          min_retry_interval_millis: 30000
+
+        - task_key: generate_parties
+          depends_on:
+            - task_key: generate_reference
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/02_generate_parties.py
+            source: WORKSPACE
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              volume: ${var.volume}
+              snapshot: ${var.snapshot}
+              seed: ${var.seed}
+              party_rows: ${var.party_rows}
+          environment_key: serverless_env
+          max_retries: 2
+          min_retry_interval_millis: 30000
+
+        - task_key: generate_banking
+          depends_on:
+            - task_key: generate_parties
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/03_generate_banking.py
+            source: WORKSPACE
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              volume: ${var.volume}
+              snapshot: ${var.snapshot}
+              seed: ${var.seed}
+              party_rows: ${var.party_rows}
+              account_rows: ${var.account_rows}
+              card_rows: ${var.card_rows}
+              merchant_rows: ${var.merchant_rows}
+              device_rows: ${var.device_rows}
+          environment_key: serverless_env
+          max_retries: 2
+          min_retry_interval_millis: 30000
+
+        - task_key: generate_financial_events
+          depends_on:
+            - task_key: generate_banking
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/04_generate_financial_events.py
+            source: WORKSPACE
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              volume: ${var.volume}
+              snapshot: ${var.snapshot}
+              seed: ${var.seed}
+              event_rows: ${var.event_rows}
+              party_rows: ${var.party_rows}
+              account_rows: ${var.account_rows}
+              card_rows: ${var.card_rows}
+              merchant_rows: ${var.merchant_rows}
+              device_rows: ${var.device_rows}
+          environment_key: serverless_env
+          max_retries: 2
+          min_retry_interval_millis: 30000
+
+        - task_key: generate_lending_insurance
+          depends_on:
+            - task_key: generate_banking
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/05_generate_lending_insurance.py
+            source: WORKSPACE
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              volume: ${var.volume}
+              snapshot: ${var.snapshot}
+              seed: ${var.seed}
+              party_rows: ${var.party_rows}
+              account_rows: ${var.account_rows}
+              receivable_rows: ${var.receivable_rows}
+              credit_case_rows: ${var.credit_case_rows}
+              insurance_case_rows: ${var.insurance_case_rows}
+          environment_key: serverless_env
+          max_retries: 2
+          min_retry_interval_millis: 30000
+
+        - task_key: generate_risk_engagement
+          depends_on:
+            - task_key: generate_financial_events
+            - task_key: generate_lending_insurance
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/06_generate_risk_engagement.py
+            source: WORKSPACE
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              volume: ${var.volume}
+              snapshot: ${var.snapshot}
+              seed: ${var.seed}
+              event_rows: ${var.event_rows}
+              party_rows: ${var.party_rows}
+              account_rows: ${var.account_rows}
+              risk_alert_rows: ${var.risk_alert_rows}
+              consent_rows: ${var.consent_rows}
+              interaction_rows: ${var.interaction_rows}
+              document_rows: ${var.document_rows}
+          environment_key: serverless_env
+          max_retries: 2
+          min_retry_interval_millis: 30000
+
+        - task_key: validate_and_manifest
+          depends_on:
+            - task_key: generate_risk_engagement
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/07_validate_and_manifest.py
+            source: WORKSPACE
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              volume: ${var.volume}
+              snapshot: ${var.snapshot}
+              seed: ${var.seed}
+              event_rows: ${var.event_rows}
+              party_rows: ${var.party_rows}
+              account_rows: ${var.account_rows}
+              card_rows: ${var.card_rows}
+              merchant_rows: ${var.merchant_rows}
+              device_rows: ${var.device_rows}
+              receivable_rows: ${var.receivable_rows}
+              credit_case_rows: ${var.credit_case_rows}
+              insurance_case_rows: ${var.insurance_case_rows}
+              risk_alert_rows: ${var.risk_alert_rows}
+              consent_rows: ${var.consent_rows}
+              interaction_rows: ${var.interaction_rows}
+              document_rows: ${var.document_rows}
+          environment_key: serverless_env
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+      environments:
+        - environment_key: serverless_env
+          spec:
+            client: "4"
+            dependencies:
+              - dbldatagen==0.4.0.post1
+              - mimesis==18.0.0
+              - jmespath==1.0.1
+              - pyparsing==3.2.5
+

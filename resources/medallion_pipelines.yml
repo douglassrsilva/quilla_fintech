@@ -1,0 +1,267 @@
+resources:
+  schemas:
+    quilla_bronze:
+      name: ${var.bronze_schema}
+      catalog_name: ${var.catalog}
+      comment: Quilla Bronze — Streaming Tables incrementais e fiéis ao landing sintético.
+      properties:
+        project: quilla
+        layer: bronze
+        managed_by: dabs
+
+    quilla_silver:
+      name: ${var.silver_schema}
+      catalog_name: ${var.catalog}
+      comment: Quilla Silver — dados deduplicados e validados por contratos DQX.
+      properties:
+        project: quilla
+        layer: silver
+        managed_by: dabs
+
+    quilla_gold:
+      name: ${var.gold_schema}
+      catalog_name: ${var.catalog}
+      comment: Quilla Gold — materialized views e camada semântica governada.
+      properties:
+        project: quilla
+        layer: gold
+        managed_by: dabs
+
+  pipelines:
+    quilla_bronze_pipeline:
+      name: "[${bundle.target}] Quilla | 01 Bronze Auto Loader"
+      catalog: ${var.catalog}
+      schema: ${resources.schemas.quilla_bronze.name}
+      serverless: true
+      photon: true
+      channel: CURRENT
+      edition: ADVANCED
+      continuous: false
+      development: false
+      libraries:
+        - file:
+            path: ../pipelines/bronze/bronze_ingestion.py
+      configuration:
+        quilla.catalog: ${var.catalog}
+        quilla.raw_schema: ${var.schema}
+        quilla.raw_volume: ${var.volume}
+        quilla.snapshot: ${var.snapshot}
+        quilla.zerobus_source_table: ${var.catalog}.${resources.schemas.quilla_bronze.name}.zerobus_financial_events
+
+    quilla_silver_pipeline:
+      name: "[${bundle.target}] Quilla | 02 Silver DQX"
+      catalog: ${var.catalog}
+      schema: ${resources.schemas.quilla_silver.name}
+      serverless: true
+      photon: true
+      # PREVIEW is required by the native Lakeflow Pipelines unit-testing beta.
+      channel: PREVIEW
+      edition: ADVANCED
+      continuous: false
+      development: false
+      libraries:
+        - file:
+            path: ../pipelines/silver/silver_quality.py
+      configuration:
+        quilla.catalog: ${var.catalog}
+        quilla.bronze_schema: ${resources.schemas.quilla_bronze.name}
+        quilla.snapshot: ${var.snapshot}
+        quilla.contract_path: ${workspace.file_path}/contracts/silver_contracts.yml
+      environment:
+        dependencies:
+          - databricks-labs-dqx==0.16.0
+          - PyYAML==6.0.2
+
+    quilla_gold_pipeline:
+      name: "[${bundle.target}] Quilla | 03 Gold Data Products"
+      catalog: ${var.catalog}
+      schema: ${resources.schemas.quilla_gold.name}
+      serverless: true
+      photon: true
+      channel: CURRENT
+      edition: ADVANCED
+      continuous: false
+      development: false
+      libraries:
+        - file:
+            path: ../pipelines/gold/gold_products.py
+      configuration:
+        quilla.catalog: ${var.catalog}
+        quilla.bronze_schema: ${resources.schemas.quilla_bronze.name}
+        quilla.silver_schema: ${resources.schemas.quilla_silver.name}
+  jobs:
+    quilla_zerobus_bootstrap:
+      name: "[${bundle.target}] Quilla | Zerobus Bootstrap"
+      description: Cria identidade M2M, tabela governada e privilégios mínimos para Zerobus.
+      max_concurrent_runs: 1
+      timeout_seconds: 1800
+      tags:
+        project: quilla
+        workload: zerobus-bootstrap
+        managed_by: dabs
+      tasks:
+        - task_key: bootstrap_zerobus
+          notebook_task:
+            notebook_path: ../notebooks/08_bootstrap_zerobus.py
+            base_parameters:
+              catalog: ${var.catalog}
+              bronze_schema: ${resources.schemas.quilla_bronze.name}
+              secret_scope: ${var.zerobus_secret_scope}
+              service_principal_name: quilla-zerobus-demo
+          timeout_seconds: 1800
+
+    simulate_realtime_events:
+      name: "[${bundle.target}] Quilla | Simulate Realtime Events"
+      description: Emite eventos financeiros PT/ES pelo Zerobus e atualiza toda a arquitetura medallion.
+      max_concurrent_runs: 1
+      timeout_seconds: 21600
+      queue:
+        enabled: true
+      parameters:
+        - name: event_count
+          default: "1000"
+        - name: scenario
+          default: mixed
+        - name: seed
+          default: "42"
+        - name: simulation_id
+          default: "{{job.run_id}}"
+      tags:
+        project: quilla
+        workload: realtime
+        managed_by: dabs
+        transport: zerobus
+        data_classification: synthetic
+      tasks:
+        - task_key: emit_zerobus_events
+          spark_python_task:
+            python_file: ../realtime/simulate_zerobus.py
+            parameters:
+              - --server-endpoint
+              - ${var.zerobus_endpoint}
+              - --workspace-url
+              - ${workspace.host}
+              - --table-name
+              - ${var.catalog}.${resources.schemas.quilla_bronze.name}.zerobus_financial_events
+              - --secret-scope
+              - ${var.zerobus_secret_scope}
+              - --event-count
+              - "{{job.parameters.event_count}}"
+              - --scenario
+              - "{{job.parameters.scenario}}"
+              - --seed
+              - "{{job.parameters.seed}}"
+              - --simulation-id
+              - "{{job.parameters.simulation_id}}"
+          environment_key: zerobus_sdk
+          timeout_seconds: 1800
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: bronze_realtime
+          depends_on:
+            - task_key: emit_zerobus_events
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.quilla_bronze_pipeline.id}
+            full_refresh: false
+          timeout_seconds: 7200
+
+        - task_key: silver_realtime_dqx
+          depends_on:
+            - task_key: bronze_realtime
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.quilla_silver_pipeline.id}
+            full_refresh: false
+          timeout_seconds: 10800
+
+        - task_key: gold_realtime
+          depends_on:
+            - task_key: silver_realtime_dqx
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.quilla_gold_pipeline.id}
+            full_refresh: false
+          timeout_seconds: 7200
+
+        - task_key: metric_views_realtime
+          depends_on:
+            - task_key: gold_realtime
+          sql_task:
+            warehouse_id: ${var.sql_warehouse_id}
+            file:
+              path: ../.generated/sql/create_metric_views.sql
+          timeout_seconds: 1800
+
+        - task_key: validate_realtime
+          depends_on:
+            - task_key: metric_views_realtime
+          notebook_task:
+            notebook_path: ../notebooks/09_validate_realtime.py
+            base_parameters:
+              catalog: ${var.catalog}
+              bronze_schema: ${resources.schemas.quilla_bronze.name}
+              silver_schema: ${resources.schemas.quilla_silver.name}
+              gold_schema: ${resources.schemas.quilla_gold.name}
+              simulation_id: "{{job.parameters.simulation_id}}"
+              expected_events: "{{job.parameters.event_count}}"
+              scenario: "{{job.parameters.scenario}}"
+          timeout_seconds: 1800
+
+      environments:
+        - environment_key: zerobus_sdk
+          spec:
+            client: "1"
+            dependencies:
+              - databricks-zerobus-ingest-sdk==1.7.0
+
+    quilla_medallion:
+      name: "[${bundle.target}] Quilla | Medallion SDP"
+      description: Orquestra Bronze Auto Loader, Silver DQX, Gold MVs e Metric Views sem regenerar o raw.
+      max_concurrent_runs: 1
+      timeout_seconds: 21600
+      queue:
+        enabled: true
+      tags:
+        project: quilla
+        workload: medallion
+        managed_by: dabs
+        data_classification: synthetic
+
+      tasks:
+        - task_key: bronze_autoloader
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.quilla_bronze_pipeline.id}
+            full_refresh: false
+          timeout_seconds: 7200
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: silver_dqx
+          depends_on:
+            - task_key: bronze_autoloader
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.quilla_silver_pipeline.id}
+            full_refresh: false
+          timeout_seconds: 10800
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: gold_materialized_views
+          depends_on:
+            - task_key: silver_dqx
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.quilla_gold_pipeline.id}
+            full_refresh: false
+          timeout_seconds: 7200
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: metric_views
+          depends_on:
+            - task_key: gold_materialized_views
+          sql_task:
+            warehouse_id: ${var.sql_warehouse_id}
+            file:
+              path: ../.generated/sql/create_metric_views.sql
+          timeout_seconds: 1800
+          max_retries: 1
+          min_retry_interval_millis: 30000

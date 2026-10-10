@@ -1,0 +1,186 @@
+resources:
+  jobs:
+    quilla_governed_skills:
+      name: "[${bundle.target}] Quilla | Unity AI Gateway Governed Skills"
+      description: Publica e valida os bundles PT/ES de inteligência externa como securables governados do Unity Catalog.
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      queue:
+        enabled: true
+      tags:
+        project: quilla
+        workload: governed-skills
+        managed_by: dabs
+        governance: unity-catalog
+        data_classification: public-instructions
+      tasks:
+        - task_key: publish_governed_skills
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/ai/53_publish_governed_skills.py
+            source: WORKSPACE
+            base_parameters:
+              catalog: ${var.catalog}
+              ai_schema: ${resources.schemas.quilla_ai.name}
+              skill_root: ${workspace.file_path}/agent_skills
+          environment_key: governed_skills_env
+          timeout_seconds: 1800
+          max_retries: 1
+          min_retry_interval_millis: 30000
+      environments:
+        - environment_key: governed_skills_env
+          spec:
+            client: "4"
+            dependencies:
+              - "databricks-sdk>=0.60.0,<1"
+
+    quilla_agent_foundation:
+      name: "[${bundle.target}] Quilla | Governed Agent Foundation"
+      description: Publica contratos de oito agentes open-weight, provisiona Managed Memory por domínio e valida a Conversation API sem promover Agent Versions.
+      max_concurrent_runs: 1
+      timeout_seconds: 14400
+      queue:
+        enabled: true
+      tags:
+        project: quilla
+        workload: agent-foundation
+        managed_by: dabs
+        governance: unity-catalog
+        data_classification: synthetic
+      tasks:
+        - task_key: publish_agent_contracts
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/ai/50_publish_agent_contracts.py
+            source: WORKSPACE
+            base_parameters: &agent_parameters
+              catalog: ${var.catalog}
+              ai_schema: ${resources.schemas.quilla_ai.name}
+              agent_release: ${var.agent_release}
+              agent_model_endpoint: ${var.agent_model_endpoint}
+              evaluation_release: ${var.genai_eval_release}
+          environment_key: agent_foundation_env
+          timeout_seconds: 3600
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: memory_supervisor
+          depends_on: [{task_key: publish_agent_contracts}]
+          notebook_task: &memory_notebook
+            notebook_path: ${workspace.file_path}/notebooks/ai/51_provision_memory_store.py
+            source: WORKSPACE
+            base_parameters:
+              <<: *agent_parameters
+              agent_key: supervisor
+          environment_key: agent_foundation_env
+          timeout_seconds: 3600
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: memory_customer_service
+          depends_on: [{task_key: publish_agent_contracts}]
+          notebook_task:
+            <<: *memory_notebook
+            base_parameters:
+              <<: *agent_parameters
+              agent_key: customer_service
+          environment_key: agent_foundation_env
+          timeout_seconds: 3600
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: memory_fraud_risk
+          depends_on: [{task_key: publish_agent_contracts}]
+          notebook_task:
+            <<: *memory_notebook
+            base_parameters:
+              <<: *agent_parameters
+              agent_key: fraud_risk
+          environment_key: agent_foundation_env
+          timeout_seconds: 3600
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: memory_responsible_credit
+          depends_on: [{task_key: publish_agent_contracts}]
+          notebook_task:
+            <<: *memory_notebook
+            base_parameters:
+              <<: *agent_parameters
+              agent_key: responsible_credit
+          environment_key: agent_foundation_env
+          timeout_seconds: 3600
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: memory_investment_suitability
+          depends_on: [{task_key: publish_agent_contracts}]
+          notebook_task:
+            <<: *memory_notebook
+            base_parameters:
+              <<: *agent_parameters
+              agent_key: investment_suitability
+          environment_key: agent_foundation_env
+          timeout_seconds: 3600
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: memory_regulatory
+          depends_on: [{task_key: publish_agent_contracts}]
+          notebook_task:
+            <<: *memory_notebook
+            base_parameters:
+              <<: *agent_parameters
+              agent_key: regulatory
+          environment_key: agent_foundation_env
+          timeout_seconds: 3600
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: memory_next_best_action
+          depends_on: [{task_key: publish_agent_contracts}]
+          notebook_task:
+            <<: *memory_notebook
+            base_parameters:
+              <<: *agent_parameters
+              agent_key: next_best_action
+          environment_key: agent_foundation_env
+          timeout_seconds: 3600
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: memory_external_intelligence
+          depends_on: [{task_key: publish_agent_contracts}]
+          notebook_task:
+            <<: *memory_notebook
+            base_parameters:
+              <<: *agent_parameters
+              agent_key: external_intelligence
+          environment_key: agent_foundation_env
+          timeout_seconds: 3600
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: validate_agent_foundation
+          depends_on:
+            - {task_key: memory_supervisor}
+            - {task_key: memory_customer_service}
+            - {task_key: memory_fraud_risk}
+            - {task_key: memory_responsible_credit}
+            - {task_key: memory_investment_suitability}
+            - {task_key: memory_regulatory}
+            - {task_key: memory_next_best_action}
+            - {task_key: memory_external_intelligence}
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/ai/52_validate_agent_foundation.py
+            source: WORKSPACE
+            base_parameters: *agent_parameters
+          environment_key: agent_foundation_env
+          timeout_seconds: 3600
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+      environments:
+        - environment_key: agent_foundation_env
+          spec:
+            client: "4"
+            dependencies:
+              - "databricks-sdk>=0.60.0,<1"

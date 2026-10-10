@@ -1,0 +1,24 @@
+command: ["python", "-m", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+env:
+  - name: QUILLA_SUPERVISOR_ENDPOINT
+    value: quilla-custom-supervisor
+  - name: QUILLA_RUNTIME_MODE
+    value: in_process
+  - name: QUILLA_OBO_REQUIRED
+    value: "true"
+  - name: QUILLA_TENANT_ID
+    value: quilla
+  - name: QUILLA_CHAT_TIMEOUT_SECONDS
+    value: "180"
+  - name: QUILLA_HEARTBEAT_SECONDS
+    value: "5"
+  - name: QUILLA_DATABASE_REQUIRED
+    value: "true"
+  - name: QUILLA_MEMORY_ENABLED
+    value: "true"
+  - name: QUILLA_MEMORY_REQUIRED
+    value: "true"
+  - name: QUILLA_DEMO_MODE
+    value: "true"
+  - name: QUILLA_ALLOW_DEMO_CONTEXT
+    value: "false"

@@ -1,0 +1,165 @@
+resources:
+  schemas:
+    quilla_governance:
+      name: ${var.governance_schema}
+      catalog_name: ${var.catalog}
+      comment: Quilla Governance — especificações de classificadores PT/ES e evidências auditáveis.
+      properties:
+        project: quilla
+        layer: governance
+        managed_by: dabs
+        data_classification: synthetic
+
+    quilla_monitoring:
+      name: ${var.monitoring_schema}
+      catalog_name: ${var.catalog}
+      comment: Quilla Monitoring — métricas de perfil, drift e controles de qualidade.
+      properties:
+        project: quilla
+        layer: monitoring
+        managed_by: dabs
+
+  quality_monitors:
+    financial_events_quality:
+      table_name: ${var.catalog}.${var.silver_schema}.financial_events
+      assets_dir: ${workspace.root_path}/monitoring/financial_events
+      output_schema_name: ${var.catalog}.${resources.schemas.quilla_monitoring.name}
+      warehouse_id: ${var.sql_warehouse_id}
+      skip_builtin_dashboard: false
+      time_series:
+        timestamp_col: event_ts_utc
+        granularities:
+          - 1 day
+      slicing_exprs:
+        - country_code
+        - event_type
+        - event_status
+      custom_metrics:
+        - type: CUSTOM_METRIC_TYPE_AGGREGATE
+          name: quilla_risk_score_out_of_range_rate
+          input_columns:
+            - risk_score
+          definition: avg(CASE WHEN `{{input_column}}` < 0 OR `{{input_column}}` > 1 THEN 1.0 ELSE 0.0 END)
+          output_data_type: '{"name":"output","type":"double","nullable":true,"metadata":{}}'
+        - type: CUSTOM_METRIC_TYPE_AGGREGATE
+          name: quilla_late_arrival_rate
+          input_columns:
+            - ':table'
+          definition: avg(CASE WHEN unix_timestamp(ingested_at) - unix_timestamp(event_ts_utc) > 300 THEN 1.0 ELSE 0.0 END)
+          output_data_type: '{"name":"output","type":"double","nullable":true,"metadata":{}}'
+        - type: CUSTOM_METRIC_TYPE_AGGREGATE
+          name: quilla_country_currency_mismatch_rate
+          input_columns:
+            - ':table'
+          definition: >-
+            avg(CASE WHEN
+              (country_code = 'BR' AND currency_code = 'BRL') OR
+              (country_code = 'MX' AND currency_code = 'MXN') OR
+              (country_code = 'CO' AND currency_code = 'COP') OR
+              (country_code = 'AR' AND currency_code = 'ARS') OR
+              (country_code = 'CL' AND currency_code = 'CLP') OR
+              (country_code = 'PE' AND currency_code = 'PEN') OR
+              (country_code = 'EC' AND currency_code = 'USD') OR
+              (country_code = 'GT' AND currency_code = 'GTQ') OR
+              (country_code = 'DO' AND currency_code = 'DOP') OR
+              (country_code = 'CR' AND currency_code = 'CRC') OR
+              (country_code = 'PA' AND currency_code = 'PAB') OR
+              (country_code = 'UY' AND currency_code = 'UYU')
+            THEN 0.0 ELSE 1.0 END)
+          output_data_type: '{"name":"output","type":"double","nullable":true,"metadata":{}}'
+
+  jobs:
+    quilla_discovery_domain_associations:
+      name: "[${bundle.target}] Quilla | Discovery Domain Associations"
+      description: Associa de forma idempotente os produtos de dados, App, dashboards e Genie Spaces aos domínios publicados da Quilla.
+      max_concurrent_runs: 1
+      timeout_seconds: 1800
+      tags:
+        project: quilla
+        workload: discovery-domains
+        managed_by: dabs
+        language: es
+      tasks:
+        - task_key: assign_discovery_domains
+          spark_python_task:
+            python_file: ../setup/assign_discovery_domains.py
+            parameters:
+              - --catalog
+              - ${var.catalog}
+              - --app-id
+              - ${resources.apps.quilla_app.id}
+              - --dashboard-executive-id
+              - ${resources.dashboards.quilla_executive_command_center.id}
+              - --dashboard-growth-id
+              - ${resources.dashboards.quilla_growth_profitability.id}
+              - --dashboard-risk-id
+              - ${resources.dashboards.quilla_risk_trust.id}
+              - --dashboard-wealth-id
+              - ${resources.dashboards.quilla_wealth_macro.id}
+              - --genie-executive-id
+              - ${resources.genie_spaces.quilla_executive_regional.id}
+              - --genie-customer-id
+              - ${resources.genie_spaces.quilla_customer_operations.id}
+              - --genie-payments-id
+              - ${resources.genie_spaces.quilla_payments_performance.id}
+              - --genie-credit-id
+              - ${resources.genie_spaces.quilla_responsible_credit.id}
+              - --genie-risk-id
+              - ${resources.genie_spaces.quilla_risk_fraud.id}
+              - --genie-growth-wealth-id
+              - ${resources.genie_spaces.quilla_growth_wealth.id}
+          environment_key: governance_env
+          timeout_seconds: 1800
+
+      environments:
+        - environment_key: governance_env
+          spec:
+            client: "1"
+            dependencies:
+              - databricks-sdk==0.112.0
+
+    quilla_governance_bootstrap:
+      name: "[${bundle.target}] Quilla | Data Classification & Governance"
+      description: Prepara classificadores PII financeiros LATAM, amplia o escopo de classificação e valida o monitor de qualidade.
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      tags:
+        project: quilla
+        workload: governance
+        managed_by: dabs
+        data_classification: synthetic
+      tasks:
+        - task_key: setup_classification
+          notebook_task:
+            notebook_path: ../notebooks/governance/40_setup_classification.py
+            base_parameters:
+              catalog: ${var.catalog}
+              raw_schema: ${var.schema}
+              bronze_schema: ${var.bronze_schema}
+              silver_schema: ${var.silver_schema}
+              gold_schema: ${var.gold_schema}
+              ml_schema: ${var.ml_schema}
+              ai_schema: ${var.ai_schema}
+              governance_schema: ${resources.schemas.quilla_governance.name}
+          environment_key: governance_env
+          timeout_seconds: 1800
+
+        - task_key: validate_governance
+          depends_on:
+            - task_key: setup_classification
+          notebook_task:
+            notebook_path: ../notebooks/governance/41_validate_governance.py
+            base_parameters:
+              catalog: ${var.catalog}
+              silver_schema: ${var.silver_schema}
+              governance_schema: ${resources.schemas.quilla_governance.name}
+              monitoring_schema: ${resources.schemas.quilla_monitoring.name}
+          environment_key: governance_env
+          timeout_seconds: 1800
+
+      environments:
+        - environment_key: governance_env
+          spec:
+            client: "1"
+            dependencies:
+              - databricks-sdk==0.112.0

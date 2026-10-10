@@ -1,0 +1,5 @@
+interface:
+  display_name: "Quilla Impact Scenarios"
+  short_description: "Traduz sinais externos em cenários financeiros"
+  default_prompt: "Use $quilla-impact-scenario-analysis para relacionar evidências externas a impactos financeiros, fiscais e de investimento."
+  brand_color: "#FF7968"

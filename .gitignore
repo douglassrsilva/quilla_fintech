@@ -1,0 +1,20 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+.env.*
+!.env.example
+.pytest_cache/
+mlruns/
+mlflow.db
+frontend/node_modules/
+npm-debug.log*
+frontend/*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
+.databricks/
+.generated/
+.DS_Store
+*.log
+
+# frontend/dist permanece versionável para deploy no Databricks Apps

@@ -1,0 +1,73 @@
+resources:
+  jobs:
+    quilla_ai_governance:
+      name: "[${bundle.target}] Quilla | Managed GenAI Governance"
+      description: Registra prompts PT/ES, gera traces governados em Unity Catalog e ativa Production Monitoring no MLflow.
+      max_concurrent_runs: 1
+      timeout_seconds: 14400
+      queue:
+        enabled: true
+      tags:
+        project: quilla
+        workload: genai-governance
+        managed_by: dabs
+        governance: unity-catalog
+        data_classification: synthetic
+      tasks:
+        - task_key: register_managed_prompts
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/ai/37_register_managed_prompts.py
+            source: WORKSPACE
+            base_parameters: &genai_governance_parameters
+              catalog: ${var.catalog}
+              ai_schema: ${resources.schemas.quilla_ai.name}
+              sql_warehouse_id: ${var.sql_warehouse_id}
+              experiment_path: /Users/${workspace.current_user.userName}/quilla-genai-${bundle.target}
+              trace_table_prefix: quilla_genai_${bundle.target}
+          environment_key: genai_governance_env
+          timeout_seconds: 3600
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: seed_governed_traces
+          depends_on:
+            - task_key: register_managed_prompts
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/ai/38_seed_governed_traces.py
+            source: WORKSPACE
+            base_parameters: *genai_governance_parameters
+          environment_key: genai_governance_env
+          timeout_seconds: 3600
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: configure_production_monitoring
+          depends_on:
+            - task_key: seed_governed_traces
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/ai/39_configure_production_monitoring.py
+            source: WORKSPACE
+            base_parameters: *genai_governance_parameters
+          environment_key: genai_governance_env
+          timeout_seconds: 3600
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: validate_genai_governance
+          depends_on:
+            - task_key: configure_production_monitoring
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/ai/43_validate_genai_governance.py
+            source: WORKSPACE
+            base_parameters: *genai_governance_parameters
+          environment_key: genai_governance_env
+          timeout_seconds: 3600
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+      environments:
+        - environment_key: genai_governance_env
+          spec:
+            client: "4"
+            dependencies:
+              - "mlflow[databricks]>=3.15.0,<4"

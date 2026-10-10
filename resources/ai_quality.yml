@@ -1,0 +1,65 @@
+resources:
+  jobs:
+    quilla_ai_quality:
+      name: "[${bundle.target}] Quilla | AI Enrichment & Search Quality"
+      description: AI Prep Search e AI Enrich PT/ES, seguidos por avaliação comparativa de retrieval em 12 países.
+      max_concurrent_runs: 1
+      timeout_seconds: 21600
+      queue:
+        enabled: true
+      tags:
+        project: quilla
+        workload: ai-enrichment-quality
+        managed_by: dabs
+        data_classification: synthetic
+      tasks:
+        - task_key: prepare_search_content
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/ai/34_prepare_search_content.py
+            source: WORKSPACE
+            base_parameters: &ai_quality_parameters
+              catalog: ${var.catalog}
+              silver_schema: ${var.silver_schema}
+              ai_schema: ${resources.schemas.quilla_ai.name}
+              lakebase_project: ${var.lakebase_project}
+              lakebase_database: ${var.lakebase_database}
+              vs_endpoint: ${var.vector_search_endpoint}
+              embedding_endpoint: ${var.embedding_endpoint}
+              prep_docs_per_segment: ${var.ai_prep_docs_per_segment}
+              enrich_docs_per_segment: ${var.ai_enrich_docs_per_segment}
+              quality_results_per_query: ${var.ai_quality_results_per_query}
+          environment_key: ai_quality_env
+          timeout_seconds: 7200
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: enrich_regulatory_knowledge
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/ai/35_enrich_regulatory_knowledge.py
+            source: WORKSPACE
+            base_parameters: *ai_quality_parameters
+          environment_key: ai_quality_env
+          timeout_seconds: 7200
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: evaluate_search_quality
+          depends_on:
+            - task_key: prepare_search_content
+            - task_key: enrich_regulatory_knowledge
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/ai/36_evaluate_search_quality.py
+            source: WORKSPACE
+            base_parameters: *ai_quality_parameters
+          environment_key: ai_quality_env
+          timeout_seconds: 7200
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+      environments:
+        - environment_key: ai_quality_env
+          spec:
+            client: "4"
+            dependencies:
+              - databricks-ai-search==0.76
+              - databricks-sdk==0.65.0

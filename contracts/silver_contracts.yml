@@ -1,0 +1,291 @@
+version: 1
+contract_family: quilla-latam-financial
+owner: Quilla Data Office
+classification: synthetic-demo
+description: >-
+  Contratos declarativos da camada Silver. Campos obrigatórios e expressões são
+  convertidos em regras DQX; chaves de negócio também dirigem a deduplicação.
+
+standards:
+  country_codes: [BR, MX, CO, AR, CL, PE, EC, GT, DO, CR, PA, UY]
+  currency_codes: [BRL, MXN, COP, ARS, CLP, PEN, USD, GTQ, DOP, CRC, PAB, UYU]
+  language_codes: [pt, es]
+
+datasets:
+  countries:
+    primary_key: [country_code]
+    required: [country_code, country_name_pt, country_name_es, locale_code, language_code, currency_code, timezone, market_tier, is_active, effective_from, synthetic_flag]
+    standards: [country, currency, language, synthetic]
+    checks:
+      - name: country_locale_language_consistent
+        criticality: error
+        expression: "(country_code = 'BR' AND language_code = 'pt' AND locale_code = 'pt-BR') OR (country_code <> 'BR' AND language_code = 'es' AND locale_code LIKE 'es-%')"
+        message: "Idioma ou locale incompatível com o país"
+
+  products:
+    primary_key: [product_id]
+    required: [product_id, product_code, business_line, product_name_pt, product_name_es, customer_segment, availability_scope, risk_class, is_active, effective_from, synthetic_flag]
+    standards: [synthetic]
+    checks:
+      - name: product_risk_class_domain
+        criticality: error
+        expression: "risk_class IN ('low','medium','high')"
+        message: "Classe de risco inválida"
+      - name: product_availability_scope_domain
+        criticality: error
+        expression: "availability_scope IN ('regional','country_adapted','country_specific')"
+        message: "Escopo de disponibilidade inválido"
+
+  fx_rates:
+    primary_key: [rate_date, country_code, base_currency, quote_currency]
+    required: [rate_date, rate_month, country_code, base_currency, quote_currency, mid_rate, buy_rate, sell_rate, rate_source, observed_at, synthetic_flag]
+    standards: [country, currency, country_base_currency, synthetic]
+    checks:
+      - name: fx_rates_positive
+        criticality: error
+        expression: "mid_rate > 0 AND buy_rate > 0 AND sell_rate > 0"
+        message: "Taxas de câmbio devem ser positivas"
+      - name: fx_spread_consistent
+        criticality: error
+        expression: "buy_rate <= mid_rate AND mid_rate <= sell_rate"
+        message: "Spread de câmbio inconsistente"
+
+  parties:
+    primary_key: [party_id]
+    required: [party_id, party_type, country_code, locale_code, preferred_language, legal_name, display_name, email, customer_segment, kyc_status, risk_band, onboarding_ts, source_system, synthetic_flag, ingested_at]
+    standards: [country, synthetic]
+    checks:
+      - name: party_type_domain
+        criticality: error
+        expression: "party_type IN ('person','company')"
+        message: "Tipo de parte inválido"
+      - name: party_language_consistent
+        criticality: error
+        expression: "(country_code = 'BR' AND preferred_language = 'pt' AND locale_code = 'pt-BR') OR (country_code <> 'BR' AND preferred_language = 'es' AND locale_code LIKE 'es-%')"
+        message: "Idioma preferencial incompatível com o país"
+      - name: party_kyc_domain
+        criticality: error
+        expression: "kyc_status IN ('verified','pending','enhanced_review')"
+        message: "Status KYC inválido"
+      - name: party_risk_domain
+        criticality: error
+        expression: "risk_band IN ('low','medium','high')"
+        message: "Faixa de risco inválida"
+
+  accounts:
+    primary_key: [account_id]
+    required: [account_id, party_id, product_id, country_code, account_type, currency_code, status, opened_at, available_balance, current_balance, risk_band, source_system, record_version, updated_at, synthetic_flag, ingested_at]
+    standards: [country, currency, country_currency, synthetic]
+    checks:
+      - name: account_status_domain
+        criticality: error
+        expression: "status IN ('active','dormant','closed')"
+        message: "Status de conta inválido"
+      - name: account_version_positive
+        criticality: error
+        expression: "record_version >= 1"
+        message: "Versão do registro inválida"
+      - name: account_dates_consistent
+        criticality: error
+        expression: "closed_at IS NULL OR closed_at >= opened_at"
+        message: "Data de encerramento anterior à abertura"
+
+  cards:
+    primary_key: [card_id]
+    required: [card_id, card_token, account_id, party_id, country_code, card_type, network, form_factor, status, issued_at, expiry_ym, spending_limit, available_limit, source_system, synthetic_flag, ingested_at]
+    standards: [country, synthetic]
+    checks:
+      - name: card_type_domain
+        criticality: error
+        expression: "card_type IN ('credit','debit')"
+        message: "Tipo de cartão inválido"
+      - name: card_status_domain
+        criticality: error
+        expression: "status IN ('active','blocked','cancelled')"
+        message: "Status de cartão inválido"
+      - name: card_limits_consistent
+        criticality: error
+        expression: "spending_limit >= 0 AND available_limit >= 0 AND available_limit <= spending_limit"
+        message: "Limites de cartão inconsistentes"
+
+  merchants:
+    primary_key: [merchant_id]
+    required: [merchant_id, country_code, merchant_name, merchant_category, mcc, city, onboarded_at, risk_band, status, source_system, synthetic_flag, ingested_at]
+    standards: [country, synthetic]
+    checks:
+      - name: merchant_status_domain
+        criticality: error
+        expression: "status IN ('active','review')"
+        message: "Status de lojista inválido"
+      - name: merchant_mcc_format
+        criticality: error
+        expression: "mcc RLIKE '^[0-9]{4}$'"
+        message: "MCC fora do formato esperado"
+
+  devices:
+    primary_key: [device_id]
+    required: [device_id, device_token, party_id, country_code, device_type, operating_system, trust_status, first_seen_at, last_seen_at, source_system, synthetic_flag, ingested_at]
+    standards: [country, synthetic]
+    checks:
+      - name: device_seen_dates_consistent
+        criticality: error
+        expression: "last_seen_at >= first_seen_at"
+        message: "Último acesso anterior ao primeiro acesso"
+
+  financial_events:
+    primary_key: [event_id]
+    tie_breakers: [source_record_id]
+    required: [source_record_id, event_id, country_code, party_id, account_id, product_id, event_type, event_status, channel, direction, amount_local, currency_code, event_ts_utc, event_timezone, authorized_ts, ingested_at, risk_score, source_system, schema_version, payload_variant, event_month, synthetic_flag]
+    standards: [country, currency, country_currency, synthetic]
+    normalizations:
+      event_status: lower_trim
+    checks:
+      - name: event_amount_positive
+        criticality: error
+        expression: "amount_local > 0"
+        message: "Valor local deve ser positivo"
+      - name: event_risk_score_range
+        criticality: error
+        expression: "risk_score BETWEEN 0.0 AND 1.0"
+        message: "Score de risco fora do intervalo 0–1"
+      - name: event_status_domain
+        criticality: error
+        expression: "lower(trim(event_status)) IN ('completed','pending','declined','reversed')"
+        message: "Status de evento inválido"
+      - name: event_status_canonical
+        criticality: warn
+        expression: "event_status = lower(trim(event_status))"
+        message: "Status requer normalização de caixa ou whitespace"
+      - name: event_arrival_sla
+        criticality: warn
+        expression: "unix_timestamp(ingested_at) - unix_timestamp(event_ts_utc) <= 300"
+        message: "Evento chegou após o SLA de cinco minutos"
+      - name: event_schema_canonical
+        criticality: warn
+        expression: "schema_version = '1.0'"
+        message: "Variação de schema detectada"
+
+  receivables:
+    primary_key: [receivable_id]
+    required: [receivable_id, party_id, account_id, country_code, invoice_token, counterparty_name, issued_date, due_date, currency_code, face_value, outstanding_value, status, eligible_for_advance, source_system, synthetic_flag, ingested_at]
+    standards: [country, currency, country_currency, synthetic]
+    checks:
+      - name: receivable_dates_consistent
+        criticality: error
+        expression: "due_date >= issued_date AND (settled_date IS NULL OR settled_date >= issued_date)"
+        message: "Datas do recebível inconsistentes"
+      - name: receivable_amounts_consistent
+        criticality: error
+        expression: "face_value > 0 AND outstanding_value >= 0 AND outstanding_value <= face_value"
+        message: "Valores do recebível inconsistentes"
+
+  credit_cases:
+    primary_key: [credit_case_id]
+    required: [credit_case_id, party_id, account_id, country_code, product_id, requested_at, requested_amount, currency_code, decision, risk_score, policy_band, term_months, decision_reason, source_system, synthetic_flag, ingested_at]
+    standards: [country, currency, country_currency, synthetic]
+    checks:
+      - name: credit_decision_domain
+        criticality: error
+        expression: "decision IN ('approved','declined','manual_review','withdrawn')"
+        message: "Decisão de crédito inválida"
+      - name: credit_amounts_consistent
+        criticality: error
+        expression: "requested_amount > 0 AND (approved_amount IS NULL OR (approved_amount > 0 AND approved_amount <= requested_amount))"
+        message: "Valores de crédito inconsistentes"
+      - name: credit_risk_score_range
+        criticality: error
+        expression: "risk_score BETWEEN 0.0 AND 1.0"
+        message: "Score de crédito fora do intervalo 0–1"
+
+  insurance_cases:
+    primary_key: [insurance_case_id]
+    required: [insurance_case_id, party_id, account_id, country_code, policy_token, case_type, coverage_type, opened_at, currency_code, status, fraud_indicator, source_system, synthetic_flag, ingested_at]
+    standards: [country, currency, country_currency, synthetic]
+    checks:
+      - name: insurance_dates_consistent
+        criticality: error
+        expression: "resolved_at IS NULL OR resolved_at >= opened_at"
+        message: "Data de resolução anterior à abertura"
+      - name: insurance_amounts_consistent
+        criticality: error
+        expression: "claimed_amount IS NULL OR (claimed_amount > 0 AND (approved_amount IS NULL OR (approved_amount >= 0 AND approved_amount <= claimed_amount)))"
+        message: "Valores do seguro inconsistentes"
+
+  risk_alerts:
+    primary_key: [alert_id]
+    required: [alert_id, event_id, party_id, account_id, country_code, alert_type, severity, risk_score, created_at, status, assigned_queue, rule_version, model_version, amount_at_risk, currency_code, source_system, synthetic_flag, ingested_at]
+    standards: [country, currency, country_currency, synthetic]
+    checks:
+      - name: alert_risk_score_range
+        criticality: error
+        expression: "risk_score BETWEEN 0.0 AND 1.0"
+        message: "Score do alerta fora do intervalo 0–1"
+      - name: alert_severity_domain
+        criticality: error
+        expression: "severity IN ('low','medium','high','critical')"
+        message: "Severidade do alerta inválida"
+      - name: alert_disposition_consistent
+        criticality: error
+        expression: "status <> 'closed' OR disposition IN ('confirmed','false_positive')"
+        message: "Alerta fechado sem disposição válida"
+
+  consents:
+    primary_key: [consent_id]
+    required: [consent_id, party_id, country_code, purpose_code, channel, status, granted_at, expires_at, policy_version, locale_code, source_system, synthetic_flag, ingested_at]
+    standards: [country, synthetic]
+    checks:
+      - name: consent_status_domain
+        criticality: error
+        expression: "status IN ('active','revoked','expired')"
+        message: "Status de consentimento inválido"
+      - name: consent_dates_consistent
+        criticality: error
+        expression: "expires_at >= granted_at AND (revoked_at IS NULL OR revoked_at >= granted_at)"
+        message: "Datas do consentimento inconsistentes"
+
+  interactions:
+    primary_key: [interaction_id]
+    required: [interaction_id, party_id, country_code, interaction_ts, channel, language_code, intent, message_text, sentiment_score, resolution_status, agent_type, source_system, synthetic_flag, ingested_at]
+    standards: [country, language, synthetic]
+    checks:
+      - name: interaction_language_consistent
+        criticality: error
+        expression: "(country_code = 'BR' AND language_code = 'pt') OR (country_code <> 'BR' AND language_code = 'es')"
+        message: "Idioma da interação incompatível com o país"
+      - name: interaction_sentiment_range
+        criticality: error
+        expression: "sentiment_score BETWEEN -1.0 AND 1.0"
+        message: "Sentimento fora do intervalo -1–1"
+
+  documents:
+    primary_key: [document_id]
+    required: [document_id, country_code, document_type, language_code, title, body, topic, effective_date, review_date, version, status, is_official, disclaimer, source_system, synthetic_flag, ingested_at]
+    standards: [country, language, synthetic]
+    checks:
+      - name: document_language_consistent
+        criticality: error
+        expression: "(country_code = 'BR' AND language_code = 'pt') OR (country_code <> 'BR' AND language_code = 'es')"
+        message: "Idioma do documento incompatível com o país"
+      - name: document_demo_safety
+        criticality: error
+        expression: "is_official = false AND synthetic_flag = true"
+        message: "Documento sintético nunca pode ser marcado como oficial"
+      - name: document_review_after_effective
+        criticality: error
+        expression: "review_date >= effective_date"
+        message: "Revisão anterior à vigência"
+
+  quality_truth:
+    primary_key: [truth_id]
+    required: [truth_id, dataset_name, source_record_id, business_key, country_code, issue_code, column_name, expected_value, observed_value, severity, is_intentional, seed, created_at]
+    standards: [country]
+    checks:
+      - name: truth_is_intentional
+        criticality: error
+        expression: "is_intentional = true"
+        message: "Registro de ground truth não intencional"
+      - name: truth_severity_domain
+        criticality: error
+        expression: "severity IN ('low','medium','high','critical')"
+        message: "Severidade de ground truth inválida"
+

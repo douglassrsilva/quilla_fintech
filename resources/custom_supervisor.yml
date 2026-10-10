@@ -1,0 +1,125 @@
+resources:
+  jobs:
+    quilla_ai_gateway_policies:
+      name: "[${bundle.target}] Quilla | Unity AI Gateway Policies"
+      description: Reconcilia built-ins e custom Service Policies governadas para os modelos Quilla.
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      queue:
+        enabled: true
+      tags:
+        project: quilla
+        workload: ai-gateway-policies
+        managed_by: dabs
+        governance: unity-catalog
+      tasks:
+        - task_key: reconcile_gateway_policies
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/ai/59_setup_unity_ai_gateway.py
+            source: WORKSPACE
+            base_parameters:
+              catalog: ${var.catalog}
+              ai_schema: ${resources.schemas.quilla_ai.name}
+              judge_model_service: ${var.guard_judge_model_service}
+              primary_model_service: ${var.primary_model_service}
+              primary_fallback_model: ${var.primary_fallback_model}
+              verifier_model_service: ${var.verifier_model_service}
+              long_context_model_service: ${var.long_context_model_service}
+          environment_key: gateway_policy_env
+          timeout_seconds: 1800
+          max_retries: 0
+      environments:
+        - environment_key: gateway_policy_env
+          spec:
+            client: "4"
+            dependencies:
+              - "databricks-sdk>=0.60.0,<1"
+
+    quilla_custom_supervisor:
+      name: "[${bundle.target}] Quilla | Custom Multi-Agent Supervisor"
+      description: Registra e implanta o supervisor próprio Quilla como MLflow ResponsesAgent no Unity Catalog.
+      max_concurrent_runs: 1
+      timeout_seconds: 14400
+      queue:
+        enabled: true
+      tags:
+        project: quilla
+        workload: custom-supervisor
+        managed_by: dabs
+        governance: unity-catalog
+        data_classification: synthetic
+      tasks:
+        - task_key: setup_unity_ai_gateway
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/ai/59_setup_unity_ai_gateway.py
+            source: WORKSPACE
+            base_parameters:
+              catalog: ${var.catalog}
+              ai_schema: ${resources.schemas.quilla_ai.name}
+              judge_model_service: ${var.guard_judge_model_service}
+              primary_model_service: ${var.primary_model_service}
+              primary_fallback_model: ${var.primary_fallback_model}
+              verifier_model_service: ${var.verifier_model_service}
+              long_context_model_service: ${var.long_context_model_service}
+          environment_key: supervisor_env
+          timeout_seconds: 1800
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: register_responses_agent
+          depends_on: [{task_key: setup_unity_ai_gateway}]
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/ai/60_register_custom_supervisor.py
+            source: WORKSPACE
+            base_parameters: &supervisor_parameters
+              catalog: ${var.catalog}
+              ai_schema: ${resources.schemas.quilla_ai.name}
+              supervisor_model_name: ${var.supervisor_model_name}
+              supervisor_endpoint_name: ${var.supervisor_endpoint_name}
+              supervisor_release: ${var.supervisor_release}
+              web_search_timeout_seconds: "45"
+              you_financial_timeout_seconds: "90"
+              you_financial_max_input_chars: "1200"
+              you_financial_daily_call_limit: "6"
+              you_financial_total_call_limit: "10"
+              you_financial_conversation_call_limit: "2"
+              lakebase_project: ${var.lakebase_project}
+              lakebase_database: ${var.lakebase_database}
+              lakebase_branch: ${var.lakebase_branch}
+              lakebase_endpoint: ${var.lakebase_endpoint}
+              primary_model: "${var.catalog}.${resources.schemas.quilla_ai.name}.${var.primary_model_service}"
+              verifier_model: "${var.catalog}.${resources.schemas.quilla_ai.name}.${var.verifier_model_service}"
+              long_context_model: "${var.catalog}.${resources.schemas.quilla_ai.name}.${var.long_context_model_service}"
+              genie_executive_regional: ${resources.genie_spaces.quilla_executive_regional.id}
+              genie_payments_performance: ${resources.genie_spaces.quilla_payments_performance.id}
+              genie_risk_fraud: ${resources.genie_spaces.quilla_risk_fraud.id}
+              genie_responsible_credit: ${resources.genie_spaces.quilla_responsible_credit.id}
+              genie_customer_operations: ${resources.genie_spaces.quilla_customer_operations.id}
+              genie_growth_wealth: ${resources.genie_spaces.quilla_growth_wealth.id}
+          environment_key: supervisor_env
+          timeout_seconds: 3600
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: deploy_responses_agent
+          depends_on: [{task_key: register_responses_agent}]
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/ai/61_deploy_custom_supervisor.py
+            source: WORKSPACE
+            base_parameters:
+              <<: *supervisor_parameters
+              model_version: "{{tasks.register_responses_agent.values.model_version}}"
+          environment_key: supervisor_env
+          timeout_seconds: 7200
+          max_retries: 1
+          min_retry_interval_millis: 60000
+
+      environments:
+        - environment_key: supervisor_env
+          spec:
+            client: "4"
+            dependencies:
+              - "mlflow>=3.15.0,<4"
+              - "openai-agents>=0.7,<1"
+              - "databricks-sdk>=0.60.0,<1"
+              - "psycopg[binary]>=3.2.9,<4"

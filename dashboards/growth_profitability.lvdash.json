@@ -1,0 +1,624 @@
+{
+  "datasets": [
+    {
+      "name": "growth_kpis",
+      "displayName": "growth_kpis",
+      "queryLines": [
+        "\nSELECT MEASURE(revenue_usd_90d) AS revenue_usd,\n  MEASURE(contribution_margin_usd_90d) AS margin_usd,\n  100 * MEASURE(contribution_margin_rate) AS margin_rate_pct,\n  100 * MEASURE(conversion_rate) AS conversion_rate_pct,\n  100 * MEASURE(churn_rate) AS churn_rate_pct,\n  MEASURE(weighted_average_clv_usd_12m) AS average_clv_usd\nFROM example_catalog.example_gold.metrics_growth_customer\n"
+      ]
+    },
+    {
+      "name": "growth_month",
+      "displayName": "growth_month",
+      "queryLines": [
+        "\nSELECT observation_month AS month, 'Receita 90d' AS series, MEASURE(revenue_usd_90d) AS value\nFROM example_catalog.example_gold.metrics_growth_customer GROUP BY ALL\nUNION ALL\nSELECT observation_month, 'Margem 90d', MEASURE(contribution_margin_usd_90d)\nFROM example_catalog.example_gold.metrics_growth_customer GROUP BY ALL\n"
+      ]
+    },
+    {
+      "name": "growth_country",
+      "displayName": "growth_country",
+      "queryLines": [
+        "\nSELECT country_code,\n  MEASURE(revenue_usd_90d) AS revenue_usd,\n  MEASURE(contribution_margin_usd_90d) AS margin_usd,\n  100 * MEASURE(conversion_rate) AS conversion_rate_pct,\n  100 * MEASURE(churn_rate) AS churn_rate_pct,\n  MEASURE(weighted_average_clv_usd_12m) AS average_clv_usd\nFROM example_catalog.example_gold.metrics_growth_customer GROUP BY country_code\n"
+      ]
+    },
+    {
+      "name": "pricing_offer",
+      "displayName": "pricing_offer",
+      "queryLines": [
+        "\nSELECT offer_type,\n  MEASURE(offers) AS offers,\n  100 * MEASURE(acceptance_rate) AS acceptance_rate_pct,\n  MEASURE(revenue_usd_90d) AS revenue_usd,\n  MEASURE(contribution_margin_usd_90d) AS margin_usd\nFROM example_catalog.example_gold.metrics_pricing_profitability GROUP BY offer_type\n"
+      ]
+    },
+    {
+      "name": "pricing_country",
+      "displayName": "pricing_country",
+      "queryLines": [
+        "\nSELECT country_code,\n  100 * MEASURE(acceptance_rate) AS acceptance_rate_pct,\n  MEASURE(weighted_average_offered_apr_bps) / 100 AS offered_apr_pct,\n  MEASURE(contribution_margin_usd_90d) AS margin_usd,\n  100 * MEASURE(risk_adjusted_margin_rate) AS risk_adjusted_margin_pct\nFROM example_catalog.example_gold.metrics_pricing_profitability GROUP BY country_code\n"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "growth_profitabilidade",
+      "displayName": "growth_profitabilidade",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layout": [
+        {
+          "widget": {
+            "name": "gr01",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "growth_kpis",
+                  "fields": [
+                    {
+                      "name": "revenue_usd",
+                      "expression": "`revenue_usd`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "revenue_usd",
+                  "displayName": "Receita 90d · Ingresos 90d",
+                  "numberFormat": "$,.2f"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Receita 90d · Ingresos 90d"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "gr02",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "growth_kpis",
+                  "fields": [
+                    {
+                      "name": "margin_usd",
+                      "expression": "`margin_usd`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "margin_usd",
+                  "displayName": "Margem 90d · Margen 90d",
+                  "numberFormat": "$,.2f"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Margem 90d · Margen 90d"
+              }
+            }
+          },
+          "position": {
+            "x": 1,
+            "y": 0,
+            "width": 1,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "gr03",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "growth_kpis",
+                  "fields": [
+                    {
+                      "name": "margin_rate_pct",
+                      "expression": "`margin_rate_pct`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "margin_rate_pct",
+                  "displayName": "Margem · Margen (%)",
+                  "numberFormat": "0.00"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Margem · Margen (%)"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 1,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "gr04",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "growth_kpis",
+                  "fields": [
+                    {
+                      "name": "conversion_rate_pct",
+                      "expression": "`conversion_rate_pct`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "conversion_rate_pct",
+                  "displayName": "Conversão · Conversión (%)",
+                  "numberFormat": "0.00"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Conversão · Conversión (%)"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 0,
+            "width": 1,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "gr05",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "growth_kpis",
+                  "fields": [
+                    {
+                      "name": "churn_rate_pct",
+                      "expression": "`churn_rate_pct`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "churn_rate_pct",
+                  "displayName": "Churn (%)",
+                  "numberFormat": "0.00"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Churn (%)"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 1,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "gr06",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "growth_kpis",
+                  "fields": [
+                    {
+                      "name": "average_clv_usd",
+                      "expression": "`average_clv_usd`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "average_clv_usd",
+                  "displayName": "CLV médio 12m · CLV promedio",
+                  "numberFormat": "$,.2f"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "CLV médio 12m · CLV promedio"
+              }
+            }
+          },
+          "position": {
+            "x": 5,
+            "y": 0,
+            "width": 1,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "gr07",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "growth_month",
+                  "fields": [
+                    {
+                      "name": "month",
+                      "expression": "`month`"
+                    },
+                    {
+                      "name": "value",
+                      "expression": "SUM(`value`)"
+                    },
+                    {
+                      "name": "series",
+                      "expression": "`series`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "month",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "displayName": "Mês · Mes"
+                },
+                "y": {
+                  "fieldName": "value",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "USD"
+                },
+                "color": {
+                  "fieldName": "series",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "series"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Receita e margem · Ingresos y margen"
+              },
+              "mark": {
+                "colors": [
+                  "#5865F2",
+                  "#20D3BC",
+                  "#FF7968",
+                  "#9B8CFF",
+                  "#63E6D2",
+                  "#FFB3A8",
+                  "#111827",
+                  "#CBD2FF"
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 3,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "gr08",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "growth_country",
+                  "fields": [
+                    {
+                      "name": "country_code",
+                      "expression": "`country_code`"
+                    },
+                    {
+                      "name": "margin_usd",
+                      "expression": "SUM(`margin_usd`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "country_code",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  },
+                  "displayName": "País"
+                },
+                "y": {
+                  "fieldName": "margin_usd",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "USD"
+                },
+                "label": {
+                  "show": true
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Margem por país · Margen por país"
+              },
+              "mark": {
+                "colors": [
+                  "#5865F2",
+                  "#20D3BC",
+                  "#FF7968",
+                  "#9B8CFF",
+                  "#63E6D2",
+                  "#FFB3A8",
+                  "#111827",
+                  "#CBD2FF"
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 9,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "gr09",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "pricing_offer",
+                  "fields": [
+                    {
+                      "name": "offer_type",
+                      "expression": "`offer_type`"
+                    },
+                    {
+                      "name": "acceptance_rate_pct",
+                      "expression": "SUM(`acceptance_rate_pct`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "offer_type",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  },
+                  "displayName": "Oferta"
+                },
+                "y": {
+                  "fieldName": "acceptance_rate_pct",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "%"
+                },
+                "label": {
+                  "show": true
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Aceite por oferta · Aceptación por oferta"
+              },
+              "mark": {
+                "colors": [
+                  "#5865F2",
+                  "#20D3BC",
+                  "#FF7968",
+                  "#9B8CFF",
+                  "#63E6D2",
+                  "#FFB3A8",
+                  "#111827",
+                  "#CBD2FF"
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 9,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "gr10",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "pricing_country",
+                  "fields": [
+                    {
+                      "name": "country_code",
+                      "expression": "`country_code`"
+                    },
+                    {
+                      "name": "acceptance_rate_pct",
+                      "expression": "`acceptance_rate_pct`"
+                    },
+                    {
+                      "name": "offered_apr_pct",
+                      "expression": "`offered_apr_pct`"
+                    },
+                    {
+                      "name": "margin_usd",
+                      "expression": "`margin_usd`"
+                    },
+                    {
+                      "name": "risk_adjusted_margin_pct",
+                      "expression": "`risk_adjusted_margin_pct`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "country_code",
+                    "type": "string",
+                    "displayAs": "string",
+                    "title": "País",
+                    "displayName": "País",
+                    "order": 0,
+                    "alignContent": "left"
+                  },
+                  {
+                    "fieldName": "acceptance_rate_pct",
+                    "type": "float",
+                    "displayAs": "number",
+                    "title": "Aceite (%)",
+                    "displayName": "Aceite (%)",
+                    "order": 1,
+                    "alignContent": "right",
+                    "numberFormat": "0.00"
+                  },
+                  {
+                    "fieldName": "offered_apr_pct",
+                    "type": "float",
+                    "displayAs": "number",
+                    "title": "APR ofertada (%)",
+                    "displayName": "APR ofertada (%)",
+                    "order": 2,
+                    "alignContent": "right",
+                    "numberFormat": "0.00"
+                  },
+                  {
+                    "fieldName": "margin_usd",
+                    "type": "float",
+                    "displayAs": "number",
+                    "title": "Margem ajustada USD",
+                    "displayName": "Margem ajustada USD",
+                    "order": 3,
+                    "alignContent": "right",
+                    "numberFormat": "$,.2f"
+                  },
+                  {
+                    "fieldName": "risk_adjusted_margin_pct",
+                    "type": "float",
+                    "displayAs": "number",
+                    "title": "Margem/receita (%)",
+                    "displayName": "Margem/receita (%)",
+                    "order": 4,
+                    "alignContent": "right",
+                    "numberFormat": "0.00"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Pricing e retorno por país · Pricing y retorno"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 15,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ]
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_LEFT"
+    },
+    "applyModeEnabled": false
+  }
+}

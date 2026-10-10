@@ -1,0 +1,497 @@
+resources:
+  schemas:
+    quilla_ml:
+      name: ${var.ml_schema}
+      catalog_name: ${var.catalog}
+      comment: Quilla ML — Feature Store, evidências MLflow, modelos e inferências governadas.
+      properties:
+        project: quilla
+        layer: ml
+        managed_by: dabs
+        data_classification: synthetic
+
+  jobs:
+    quilla_ml_data:
+      name: "[${bundle.target}] Quilla | ML Data & Feature Store"
+      description: Gera outcomes e cenários sintéticos em volume separado, valida contratos e publica Feature Tables no Unity Catalog.
+      max_concurrent_runs: 1
+      timeout_seconds: 21600
+      queue:
+        enabled: true
+      tags:
+        project: quilla
+        workload: ml-data
+        managed_by: dabs
+        data_classification: synthetic
+      tasks:
+        - task_key: setup_ml
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/ml/10_setup_ml.py
+            source: WORKSPACE
+            base_parameters: &ml_common_parameters
+              catalog: ${var.catalog}
+              raw_schema: ${var.schema}
+              silver_schema: ${var.silver_schema}
+              ml_schema: ${resources.schemas.quilla_ml.name}
+              ml_volume: ${var.ml_volume}
+              ml_snapshot: ${var.ml_snapshot}
+              seed: ${var.seed}
+          environment_key: ml_env
+          timeout_seconds: 1800
+          max_retries: 2
+          min_retry_interval_millis: 30000
+
+        - task_key: generate_macro_market
+          depends_on:
+            - task_key: setup_ml
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/ml/11_generate_macro_market.py
+            source: WORKSPACE
+            base_parameters: *ml_common_parameters
+          environment_key: ml_env
+          timeout_seconds: 3600
+          max_retries: 2
+          min_retry_interval_millis: 30000
+
+        - task_key: generate_credit_customer
+          depends_on:
+            - task_key: generate_macro_market
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/ml/12_generate_credit_customer.py
+            source: WORKSPACE
+            base_parameters:
+              <<: *ml_common_parameters
+              credit_case_rows: ${var.ml_credit_case_rows}
+              party_rows: ${var.ml_party_rows}
+          environment_key: ml_env
+          timeout_seconds: 5400
+          max_retries: 2
+          min_retry_interval_millis: 30000
+
+        - task_key: generate_security_cases
+          depends_on:
+            - task_key: setup_ml
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/ml/13_generate_security_cases.py
+            source: WORKSPACE
+            base_parameters:
+              <<: *ml_common_parameters
+              session_rows: ${var.ml_session_rows}
+              party_rows: ${var.ml_party_rows}
+              account_rows: ${var.account_rows}
+              device_rows: ${var.device_rows}
+              risk_alert_rows: ${var.ml_risk_alert_rows}
+              insurance_case_rows: ${var.ml_insurance_case_rows}
+          environment_key: ml_env
+          timeout_seconds: 5400
+          max_retries: 2
+          min_retry_interval_millis: 30000
+
+        - task_key: generate_pricing_investments
+          depends_on:
+            - task_key: generate_macro_market
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/ml/14_generate_pricing_investments.py
+            source: WORKSPACE
+            base_parameters:
+              <<: *ml_common_parameters
+              pricing_rows: ${var.ml_pricing_rows}
+              profile_rows: ${var.ml_profile_rows}
+              investment_event_rows: ${var.ml_investment_event_rows}
+              party_rows: ${var.ml_party_rows}
+              account_rows: ${var.account_rows}
+          environment_key: ml_env
+          timeout_seconds: 5400
+          max_retries: 2
+          min_retry_interval_millis: 30000
+
+        - task_key: validate_ml_landing
+          depends_on:
+            - task_key: generate_credit_customer
+            - task_key: generate_security_cases
+            - task_key: generate_pricing_investments
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/ml/15_validate_ml_landing.py
+            source: WORKSPACE
+            base_parameters:
+              <<: *ml_common_parameters
+              credit_case_rows: ${var.ml_credit_case_rows}
+              party_rows: ${var.ml_party_rows}
+              session_rows: ${var.ml_session_rows}
+              risk_alert_rows: ${var.ml_risk_alert_rows}
+              insurance_case_rows: ${var.ml_insurance_case_rows}
+              pricing_rows: ${var.ml_pricing_rows}
+              profile_rows: ${var.ml_profile_rows}
+              investment_event_rows: ${var.ml_investment_event_rows}
+          environment_key: ml_env
+          timeout_seconds: 3600
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: publish_feature_store
+          depends_on:
+            - task_key: validate_ml_landing
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/ml/16_build_feature_store.py
+            source: WORKSPACE
+            base_parameters:
+              <<: *ml_common_parameters
+              event_rows: ${var.ml_event_rows}
+              interaction_rows: ${var.ml_interaction_rows}
+          environment_key: ml_env
+          timeout_seconds: 7200
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+      environments: &ml_environments
+        - environment_key: ml_env
+          spec:
+            client: "4"
+            dependencies:
+              - mlflow==3.3.2
+              - scikit-learn==1.5.2
+              - pandas==2.2.3
+              - numpy==1.26.4
+              - databricks-feature-engineering==0.13.0
+              - databricks-sdk==0.65.0
+
+    quilla_ml_train:
+      name: "[${bundle.target}] Quilla | Train 22 Models"
+      description: Treina, avalia, cria MLflow Traces, registra 22 modelos no Unity Catalog e promove aliases Champion/Challenger.
+      max_concurrent_runs: 1
+      timeout_seconds: 28800
+      queue:
+        enabled: true
+      tags:
+        project: quilla
+        workload: ml-training
+        managed_by: dabs
+        governance: unity-catalog
+      tasks:
+        - task_key: train_transaction_fraud
+          notebook_task: &train_realtime_notebook
+            notebook_path: ${workspace.file_path}/notebooks/ml/17_train_realtime_risk.py
+            source: WORKSPACE
+            base_parameters:
+              <<: *ml_common_parameters
+              experiment_path: /Users/${workspace.current_user.userName}/quilla-ml-${bundle.target}
+              model_key: transaction_fraud
+          environment_key: ml_env
+          timeout_seconds: 7200
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: train_account_takeover
+          notebook_task:
+            <<: *train_realtime_notebook
+            base_parameters:
+              <<: *ml_common_parameters
+              experiment_path: /Users/${workspace.current_user.userName}/quilla-ml-${bundle.target}
+              model_key: account_takeover
+          environment_key: ml_env
+          timeout_seconds: 7200
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: train_aml_anomaly
+          notebook_task:
+            <<: *train_realtime_notebook
+            base_parameters:
+              <<: *ml_common_parameters
+              experiment_path: /Users/${workspace.current_user.userName}/quilla-ml-${bundle.target}
+              model_key: aml_anomaly
+          environment_key: ml_env
+          timeout_seconds: 7200
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: train_alert_confirmation
+          notebook_task:
+            <<: *train_realtime_notebook
+            base_parameters:
+              <<: *ml_common_parameters
+              experiment_path: /Users/${workspace.current_user.userName}/quilla-ml-${bundle.target}
+              model_key: alert_confirmation
+          environment_key: ml_env
+          timeout_seconds: 7200
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: train_credit_pd
+          notebook_task: &train_credit_notebook
+            notebook_path: ${workspace.file_path}/notebooks/ml/18_train_credit.py
+            source: WORKSPACE
+            base_parameters:
+              <<: *ml_common_parameters
+              experiment_path: /Users/${workspace.current_user.userName}/quilla-ml-${bundle.target}
+              model_key: credit_pd
+          environment_key: ml_env
+          timeout_seconds: 7200
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: train_delinquency_propensity
+          notebook_task:
+            <<: *train_credit_notebook
+            base_parameters:
+              <<: *ml_common_parameters
+              experiment_path: /Users/${workspace.current_user.userName}/quilla-ml-${bundle.target}
+              model_key: delinquency_propensity
+          environment_key: ml_env
+          timeout_seconds: 7200
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: train_credit_lgd
+          notebook_task:
+            <<: *train_credit_notebook
+            base_parameters:
+              <<: *ml_common_parameters
+              experiment_path: /Users/${workspace.current_user.userName}/quilla-ml-${bundle.target}
+              model_key: credit_lgd
+          environment_key: ml_env
+          timeout_seconds: 7200
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: train_credit_ead
+          notebook_task:
+            <<: *train_credit_notebook
+            base_parameters:
+              <<: *ml_common_parameters
+              experiment_path: /Users/${workspace.current_user.userName}/quilla-ml-${bundle.target}
+              model_key: credit_ead
+          environment_key: ml_env
+          timeout_seconds: 7200
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: train_pricing_acceptance
+          notebook_task: &train_growth_notebook
+            notebook_path: ${workspace.file_path}/notebooks/ml/19_train_growth_forecast.py
+            source: WORKSPACE
+            base_parameters:
+              <<: *ml_common_parameters
+              experiment_path: /Users/${workspace.current_user.userName}/quilla-ml-${bundle.target}
+              model_key: pricing_acceptance
+          environment_key: ml_env
+          timeout_seconds: 7200
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: train_next_best_action
+          notebook_task:
+            <<: *train_growth_notebook
+            base_parameters:
+              <<: *ml_common_parameters
+              experiment_path: /Users/${workspace.current_user.userName}/quilla-ml-${bundle.target}
+              model_key: next_best_action
+          environment_key: ml_env
+          timeout_seconds: 7200
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: train_customer_churn
+          notebook_task:
+            <<: *train_growth_notebook
+            base_parameters:
+              <<: *ml_common_parameters
+              experiment_path: /Users/${workspace.current_user.userName}/quilla-ml-${bundle.target}
+              model_key: customer_churn
+          environment_key: ml_env
+          timeout_seconds: 7200
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: train_customer_clv
+          notebook_task:
+            <<: *train_growth_notebook
+            base_parameters:
+              <<: *ml_common_parameters
+              experiment_path: /Users/${workspace.current_user.userName}/quilla-ml-${bundle.target}
+              model_key: customer_clv
+          environment_key: ml_env
+          timeout_seconds: 7200
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: train_cashflow_forecast
+          notebook_task:
+            <<: *train_growth_notebook
+            base_parameters:
+              <<: *ml_common_parameters
+              experiment_path: /Users/${workspace.current_user.userName}/quilla-ml-${bundle.target}
+              model_key: cashflow_forecast
+          environment_key: ml_env
+          timeout_seconds: 7200
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: train_macro_regime
+          notebook_task:
+            <<: *train_growth_notebook
+            base_parameters:
+              <<: *ml_common_parameters
+              experiment_path: /Users/${workspace.current_user.userName}/quilla-ml-${bundle.target}
+              model_key: macro_regime
+          environment_key: ml_env
+          timeout_seconds: 7200
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: train_portfolio_stress_loss
+          notebook_task:
+            <<: *train_growth_notebook
+            base_parameters:
+              <<: *ml_common_parameters
+              experiment_path: /Users/${workspace.current_user.userName}/quilla-ml-${bundle.target}
+              model_key: portfolio_stress_loss
+          environment_key: ml_env
+          timeout_seconds: 7200
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: train_merchant_sales_forecast
+          notebook_task:
+            <<: *train_growth_notebook
+            base_parameters:
+              <<: *ml_common_parameters
+              experiment_path: /Users/${workspace.current_user.userName}/quilla-ml-${bundle.target}
+              model_key: merchant_sales_forecast
+          environment_key: ml_env
+          timeout_seconds: 7200
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: train_insurance_fraud
+          notebook_task: &train_insurance_notebook
+            notebook_path: ${workspace.file_path}/notebooks/ml/20_train_insurance_cx.py
+            source: WORKSPACE
+            base_parameters:
+              <<: *ml_common_parameters
+              experiment_path: /Users/${workspace.current_user.userName}/quilla-ml-${bundle.target}
+              model_key: insurance_fraud
+          environment_key: ml_env
+          timeout_seconds: 7200
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: train_insurance_severity
+          notebook_task:
+            <<: *train_insurance_notebook
+            base_parameters:
+              <<: *ml_common_parameters
+              experiment_path: /Users/${workspace.current_user.userName}/quilla-ml-${bundle.target}
+              model_key: insurance_severity
+          environment_key: ml_env
+          timeout_seconds: 7200
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: train_support_intent
+          notebook_task:
+            <<: *train_insurance_notebook
+            base_parameters:
+              <<: *ml_common_parameters
+              experiment_path: /Users/${workspace.current_user.userName}/quilla-ml-${bundle.target}
+              model_key: support_intent
+          environment_key: ml_env
+          timeout_seconds: 7200
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: train_investment_suitability
+          notebook_task: &train_wealth_notebook
+            notebook_path: ${workspace.file_path}/notebooks/ml/21_train_wealth.py
+            source: WORKSPACE
+            base_parameters:
+              <<: *ml_common_parameters
+              experiment_path: /Users/${workspace.current_user.userName}/quilla-ml-${bundle.target}
+              model_key: investment_suitability
+          environment_key: ml_env
+          timeout_seconds: 7200
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: train_investment_product_recommender
+          notebook_task:
+            <<: *train_wealth_notebook
+            base_parameters:
+              <<: *ml_common_parameters
+              experiment_path: /Users/${workspace.current_user.userName}/quilla-ml-${bundle.target}
+              model_key: investment_product_recommender
+          environment_key: ml_env
+          timeout_seconds: 7200
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: train_portfolio_risk_forecast
+          notebook_task:
+            <<: *train_wealth_notebook
+            base_parameters:
+              <<: *ml_common_parameters
+              experiment_path: /Users/${workspace.current_user.userName}/quilla-ml-${bundle.target}
+              model_key: portfolio_risk_forecast
+          environment_key: ml_env
+          timeout_seconds: 7200
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: validate_22_models
+          depends_on:
+            - task_key: train_transaction_fraud
+            - task_key: train_account_takeover
+            - task_key: train_aml_anomaly
+            - task_key: train_alert_confirmation
+            - task_key: train_credit_pd
+            - task_key: train_delinquency_propensity
+            - task_key: train_credit_lgd
+            - task_key: train_credit_ead
+            - task_key: train_pricing_acceptance
+            - task_key: train_next_best_action
+            - task_key: train_customer_churn
+            - task_key: train_customer_clv
+            - task_key: train_cashflow_forecast
+            - task_key: train_macro_regime
+            - task_key: train_portfolio_stress_loss
+            - task_key: train_merchant_sales_forecast
+            - task_key: train_insurance_fraud
+            - task_key: train_insurance_severity
+            - task_key: train_support_intent
+            - task_key: train_investment_suitability
+            - task_key: train_investment_product_recommender
+            - task_key: train_portfolio_risk_forecast
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/ml/22_validate_models.py
+            source: WORKSPACE
+            base_parameters:
+              <<: *ml_common_parameters
+              experiment_path: /Users/${workspace.current_user.userName}/quilla-ml-${bundle.target}
+          environment_key: ml_env
+          timeout_seconds: 3600
+          max_retries: 1
+          min_retry_interval_millis: 30000
+      environments: *ml_environments
+
+    quilla_ml_serving:
+      name: "[${bundle.target}] Quilla | Model Serving"
+      description: Publica seis modelos Champion em endpoints serverless com inference tables para observabilidade.
+      max_concurrent_runs: 1
+      timeout_seconds: 7200
+      queue:
+        enabled: true
+      tags:
+        project: quilla
+        workload: model-serving
+        managed_by: dabs
+      tasks:
+        - task_key: publish_serving_endpoints
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/ml/23_publish_model_serving.py
+            source: WORKSPACE
+            base_parameters: *ml_common_parameters
+          environment_key: ml_env
+          timeout_seconds: 7200
+          max_retries: 1
+          min_retry_interval_millis: 30000
+      environments: *ml_environments

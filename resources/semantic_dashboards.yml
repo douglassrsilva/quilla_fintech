@@ -1,0 +1,75 @@
+resources:
+  jobs:
+    quilla_business_semantics:
+      name: "[${bundle.target}] Quilla | Business Semantic Layer"
+      description: Cria e valida sete Metric Views adicionais para Growth, Pricing, Wealth, Macro, Case Outcomes e DQ.
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      queue:
+        enabled: true
+      tags:
+        project: quilla
+        workload: semantic-layer
+        managed_by: dabs
+        governance: unity-catalog
+        data_classification: synthetic
+      tasks:
+        - task_key: create_business_metric_views
+          sql_task:
+            warehouse_id: ${var.sql_warehouse_id}
+            file:
+              path: ../.generated/sql/create_all_metric_views.sql
+          timeout_seconds: 1800
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: validate_business_metric_views
+          depends_on:
+            - task_key: create_business_metric_views
+          sql_task:
+            warehouse_id: ${var.sql_warehouse_id}
+            file:
+              path: ../.generated/sql/validate_business_metric_views.sql
+          timeout_seconds: 1800
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: validate_dashboard_datasets
+          depends_on:
+            - task_key: validate_business_metric_views
+          sql_task:
+            warehouse_id: ${var.sql_warehouse_id}
+            file:
+              path: ../.generated/sql/validate_dashboard_datasets.sql
+          timeout_seconds: 1800
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+  dashboards:
+    quilla_executive_command_center:
+      display_name: "[${bundle.target}] Quilla | Centro Executivo LATAM"
+      file_path: ../.generated/dashboards/executive_command_center.lvdash.json
+      warehouse_id: ${var.sql_warehouse_id}
+      parent_path: ${workspace.root_path}/dashboards
+      embed_credentials: true
+
+    quilla_growth_profitability:
+      display_name: "[${bundle.target}] Quilla | Growth & Profitabilidade"
+      file_path: ../.generated/dashboards/growth_profitability.lvdash.json
+      warehouse_id: ${var.sql_warehouse_id}
+      parent_path: ${workspace.root_path}/dashboards
+      embed_credentials: true
+
+    quilla_wealth_macro:
+      display_name: "[${bundle.target}] Quilla | Wealth & Macro Stress"
+      file_path: ../.generated/dashboards/wealth_macro.lvdash.json
+      warehouse_id: ${var.sql_warehouse_id}
+      parent_path: ${workspace.root_path}/dashboards
+      embed_credentials: true
+
+    quilla_risk_trust:
+      display_name: "[${bundle.target}] Quilla | Risco, Crédito & Confiança"
+      file_path: ../.generated/dashboards/risk_trust.lvdash.json
+      warehouse_id: ${var.sql_warehouse_id}
+      parent_path: ${workspace.root_path}/dashboards
+      embed_credentials: true

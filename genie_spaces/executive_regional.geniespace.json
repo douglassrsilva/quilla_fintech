@@ -1,0 +1,62 @@
+{
+  "version": 2,
+  "config": {
+    "sample_questions": [
+      {
+        "id": "10000000000000000000000000000001",
+        "question": ["Compare o volume financeiro em USD e a taxa de conclusão entre os 12 países no último trimestre disponível."]
+      },
+      {
+        "id": "10000000000000000000000000000002",
+        "question": ["¿Qué mercados combinan mayor volumen financiero y menor tasa de fraude en el período disponible?"]
+      },
+      {
+        "id": "10000000000000000000000000000003",
+        "question": ["Mostre a evolução mensal das aprovações de crédito por país e destaque mudanças relevantes."]
+      },
+      {
+        "id": "10000000000000000000000000000004",
+        "question": ["¿Cuál es el estado de calidad de datos por conjunto y qué dominios requieren atención?"]
+      }
+    ]
+  },
+  "data_sources": {
+    "tables": [
+      {"identifier": "example_catalog.example_gold.metrics_case_outcomes"},
+      {"identifier": "example_catalog.example_gold.metrics_credit_portfolio"},
+      {"identifier": "example_catalog.example_gold.metrics_data_quality"},
+      {"identifier": "example_catalog.example_gold.metrics_financial_performance"},
+      {"identifier": "example_catalog.example_gold.metrics_growth_customer"},
+      {"identifier": "example_catalog.example_gold.metrics_investor_suitability"},
+      {"identifier": "example_catalog.example_gold.metrics_macro_stress"},
+      {"identifier": "example_catalog.example_gold.metrics_pricing_profitability"},
+      {"identifier": "example_catalog.example_gold.metrics_risk_operations"},
+      {"identifier": "example_catalog.example_gold.metrics_wealth_engagement"},
+      {"identifier": "example_catalog.example_gold.mv_credit_portfolio_monthly"},
+      {"identifier": "example_catalog.example_gold.mv_customer_360"},
+      {"identifier": "example_catalog.example_gold.mv_data_quality_overview"},
+      {"identifier": "example_catalog.example_gold.mv_financial_performance_daily"},
+      {"identifier": "example_catalog.example_gold.mv_risk_operations_daily"}
+    ]
+  },
+  "instructions": {
+    "text_instructions": [
+      {
+        "content": [
+          "Responda no idioma da pergunta: português do Brasil ou espanhol latino-americano.",
+          "Todo dado é sintético e demonstrativo. Nunca o apresente como posição financeira real nem como informação atual da Quilla.",
+          "O snapshot histórico termina em 31 de agosto de 2026, mas o Zerobus pode acrescentar eventos demonstrativos posteriores. Sempre derive e informe a data máxima da fonte consultada; não trate o snapshot como limite dos dados realtime.",
+          "Mercados: BR, MX, CO, AR, CL, PE, EC, GT, DO, CR, PA e UY.",
+          "Em comparações regionais, some somente colunas em USD. Valores locais só podem ser agregados dentro da mesma currency_code.",
+          "Use Metric Views para KPIs sempre que possível e Materialized Views para detalhamento e tendências.",
+          "Para Growth, pricing, wealth, suitability, macro, outcomes de casos e DQ, use as Metric Views Gold específicas e medidas com MEASURE(...).",
+          "Taxas são razões entre 0 e 1; apresente-as como percentuais. annual_rate_bps está em pontos-base e deve ser dividido por 100 para exibição percentual.",
+          "Não exponha display_name, party_id ou qualquer linha individual. Prefira agregações por país, data, produto e segmento.",
+          "Não dê aconselhamento financeiro, jurídico ou regulatório. Para regulação, encaminhe ao agente regulatório com fontes e jurisdição.",
+          "Se a fonte não contiver o dado solicitado, declare a limitação; não estime nem invente valores.",
+          "Finalize toda resposta no idioma do usuário com um aviso explícito de que os dados são sintéticos e não constituem aconselhamento financeiro, jurídico ou regulatório."
+        ]
+      }
+    ]
+  }
+}

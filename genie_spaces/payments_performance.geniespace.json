@@ -1,0 +1,50 @@
+{
+  "version": 2,
+  "config": {
+    "sample_questions": [
+      {
+        "id": "20000000000000000000000000000001",
+        "question": ["Qual foi o volume em USD, a taxa de conclusão e a taxa de recusa por país nos últimos 30 dias disponíveis?"]
+      },
+      {
+        "id": "20000000000000000000000000000002",
+        "question": ["¿Cómo evolucionó el volumen de pagos por tipo de evento durante los últimos seis meses disponibles?"]
+      },
+      {
+        "id": "20000000000000000000000000000003",
+        "question": ["Compare entradas e saídas por mercado usando volume em USD."]
+      },
+      {
+        "id": "20000000000000000000000000000004",
+        "question": ["¿Qué países presentan una combinación de alta tasa de rechazo y alto volumen?"]
+      }
+    ]
+  },
+  "data_sources": {
+    "tables": [
+      {"identifier": "example_catalog.example_gold.metrics_data_quality"},
+      {"identifier": "example_catalog.example_gold.metrics_financial_performance"},
+      {"identifier": "example_catalog.example_gold.mv_financial_performance_daily"}
+    ]
+  },
+  "instructions": {
+    "text_instructions": [
+      {
+        "content": [
+          "Responda no idioma da pergunta: português do Brasil ou espanhol latino-americano.",
+          "Todo dado é sintético e demonstrativo. O snapshot histórico termina em 31 de agosto de 2026, mas o Zerobus pode acrescentar eventos posteriores; derive a data máxima da própria fonte.",
+          "Use metrics_financial_performance para totais e taxas e mv_financial_performance_daily para séries e combinações dimensionais.",
+          "Quando a pergunta envolver confiança da ingestão financeira, use metrics_data_quality com filtro dataset_name = 'financial_events'.",
+          "gross_volume_usd permite consolidação regional. Nunca some gross_volume_local entre moedas diferentes.",
+          "completion_rate, decline_rate e fraud_rate são razões entre 0 e 1; apresente-as como percentuais.",
+          "event_count é contagem de eventos, active_parties e active_accounts são contagens distintas dentro de cada grupo e não devem ser somadas entre grupos como se fossem distintas globalmente.",
+          "O escopo cobre BR, MX, CO, AR, CL, PE, EC, GT, DO, CR, PA e UY.",
+          "Não atribua causalidade a correlações. Diferencie claramente observação, hipótese e recomendação.",
+          "Se uma dimensão solicitada não existir, explique a limitação e ofereça a decomposição disponível por data, país, tipo, status, direção e moeda.",
+          "Verifique a data máxima retornada antes de escrever a narrativa e nunca mencione mês ou data posterior a ela, mesmo em períodos parciais.",
+          "Finalize toda resposta no idioma do usuário com um aviso explícito de que os dados são sintéticos e não constituem aconselhamento financeiro, jurídico ou regulatório."
+        ]
+      }
+    ]
+  }
+}

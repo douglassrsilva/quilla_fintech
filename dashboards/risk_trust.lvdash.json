@@ -1,0 +1,731 @@
+{
+  "datasets": [
+    {
+      "name": "risk_kpis",
+      "displayName": "risk_kpis",
+      "queryLines": [
+        "\nSELECT MEASURE(total_alerts) AS total_alerts,\n  100 * MEASURE(confirmation_rate) AS confirmation_rate_pct,\n  100 * MEASURE(false_positive_rate) AS false_positive_rate_pct\nFROM example_catalog.example_gold.metrics_risk_operations\n"
+      ]
+    },
+    {
+      "name": "case_kpis",
+      "displayName": "case_kpis",
+      "queryLines": [
+        "\nSELECT MEASURE(prevented_loss_usd) AS prevented_loss_usd,\n  MEASURE(net_loss_usd) AS net_loss_usd,\n  MEASURE(weighted_average_resolution_minutes) AS resolution_minutes\nFROM example_catalog.example_gold.metrics_case_outcomes\n"
+      ]
+    },
+    {
+      "name": "dq_kpis",
+      "displayName": "dq_kpis",
+      "queryLines": [
+        "\nSELECT 100 * MEASURE(reconciliation_rate) AS reconciliation_rate_pct,\n  100 * MEASURE(global_acceptance_rate) AS acceptance_rate_pct,\n  MEASURE(quarantine_rows) AS quarantine_rows\nFROM example_catalog.example_gold.metrics_data_quality\n"
+      ]
+    },
+    {
+      "name": "risk_country",
+      "displayName": "risk_country",
+      "queryLines": [
+        "\nSELECT country_code,\n  MEASURE(total_alerts) AS total_alerts,\n  100 * MEASURE(confirmation_rate) AS confirmation_rate_pct,\n  100 * MEASURE(false_positive_rate) AS false_positive_rate_pct\nFROM example_catalog.example_gold.metrics_risk_operations GROUP BY country_code\n"
+      ]
+    },
+    {
+      "name": "risk_trend",
+      "displayName": "risk_trend",
+      "queryLines": [
+        "\nSELECT alert_date, severity, MEASURE(total_alerts) AS total_alerts\nFROM example_catalog.example_gold.metrics_risk_operations GROUP BY alert_date, severity\n"
+      ]
+    },
+    {
+      "name": "case_domain",
+      "displayName": "case_domain",
+      "queryLines": [
+        "\nSELECT domain,\n  MEASURE(cases) AS cases,\n  MEASURE(prevented_loss_usd) AS prevented_loss_usd,\n  MEASURE(net_loss_usd) AS net_loss_usd,\n  100 * MEASURE(confirmation_rate) AS confirmation_rate_pct\nFROM example_catalog.example_gold.metrics_case_outcomes GROUP BY domain\n"
+      ]
+    },
+    {
+      "name": "credit_country",
+      "displayName": "credit_country",
+      "queryLines": [
+        "\nSELECT country_code,\n  MEASURE(applications) AS applications,\n  100 * MEASURE(approval_rate) AS approval_rate_pct,\n  MEASURE(weighted_average_annual_rate_bps) / 100 AS annual_rate_pct,\n  MEASURE(weighted_average_risk_score) AS risk_score\nFROM example_catalog.example_gold.metrics_credit_portfolio GROUP BY country_code\n"
+      ]
+    },
+    {
+      "name": "dq_detail",
+      "displayName": "dq_detail",
+      "queryLines": [
+        "\nSELECT dataset_name,\n  MEASURE(bronze_rows) AS bronze_rows,\n  MEASURE(silver_rows) AS silver_rows,\n  MEASURE(quarantine_rows) AS quarantine_rows,\n  100 * MEASURE(global_acceptance_rate) AS acceptance_rate_pct,\n  100 * MEASURE(reconciliation_rate) AS reconciliation_rate_pct\nFROM example_catalog.example_gold.metrics_data_quality GROUP BY dataset_name\n"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "risco_credito_confianca",
+      "displayName": "risco_credito_confianca",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layout": [
+        {
+          "widget": {
+            "name": "rt01",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "risk_kpis",
+                  "fields": [
+                    {
+                      "name": "total_alerts",
+                      "expression": "`total_alerts`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "total_alerts",
+                  "displayName": "Alertas · Alertas",
+                  "numberFormat": "0"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Alertas · Alertas"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "rt02",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "risk_kpis",
+                  "fields": [
+                    {
+                      "name": "confirmation_rate_pct",
+                      "expression": "`confirmation_rate_pct`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "confirmation_rate_pct",
+                  "displayName": "Confirmação · Confirmación (%)",
+                  "numberFormat": "0.00"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Confirmação · Confirmación (%)"
+              }
+            }
+          },
+          "position": {
+            "x": 1,
+            "y": 0,
+            "width": 1,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "rt03",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "risk_kpis",
+                  "fields": [
+                    {
+                      "name": "false_positive_rate_pct",
+                      "expression": "`false_positive_rate_pct`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "false_positive_rate_pct",
+                  "displayName": "Falso positivo (%)",
+                  "numberFormat": "0.00"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Falso positivo (%)"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 1,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "rt04",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "case_kpis",
+                  "fields": [
+                    {
+                      "name": "prevented_loss_usd",
+                      "expression": "`prevented_loss_usd`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "prevented_loss_usd",
+                  "displayName": "Perda evitada · Pérdida evitada",
+                  "numberFormat": "$,.2f"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Perda evitada · Pérdida evitada"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 0,
+            "width": 1,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "rt05",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "dq_kpis",
+                  "fields": [
+                    {
+                      "name": "reconciliation_rate_pct",
+                      "expression": "`reconciliation_rate_pct`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "reconciliation_rate_pct",
+                  "displayName": "Reconciliação · Reconciliación (%)",
+                  "numberFormat": "0.00"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Reconciliação · Reconciliación (%)"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 1,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "rt06",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "dq_kpis",
+                  "fields": [
+                    {
+                      "name": "quarantine_rows",
+                      "expression": "`quarantine_rows`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "quarantine_rows",
+                  "displayName": "Quarentena DQX",
+                  "numberFormat": "0"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Quarentena DQX"
+              }
+            }
+          },
+          "position": {
+            "x": 5,
+            "y": 0,
+            "width": 1,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "rt07",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "risk_trend",
+                  "fields": [
+                    {
+                      "name": "alert_date",
+                      "expression": "`alert_date`"
+                    },
+                    {
+                      "name": "total_alerts",
+                      "expression": "SUM(`total_alerts`)"
+                    },
+                    {
+                      "name": "severity",
+                      "expression": "`severity`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "alert_date",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "displayName": "Data · Fecha"
+                },
+                "y": {
+                  "fieldName": "total_alerts",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Alertas"
+                },
+                "color": {
+                  "fieldName": "severity",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "severity"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Alertas por severidade · Alertas por severidad"
+              },
+              "mark": {
+                "colors": [
+                  "#5865F2",
+                  "#20D3BC",
+                  "#FF7968",
+                  "#9B8CFF",
+                  "#63E6D2",
+                  "#FFB3A8",
+                  "#111827",
+                  "#CBD2FF"
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 3,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "rt08",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "risk_country",
+                  "fields": [
+                    {
+                      "name": "country_code",
+                      "expression": "`country_code`"
+                    },
+                    {
+                      "name": "total_alerts",
+                      "expression": "SUM(`total_alerts`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "country_code",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  },
+                  "displayName": "País"
+                },
+                "y": {
+                  "fieldName": "total_alerts",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Alertas"
+                },
+                "label": {
+                  "show": true
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Alertas por país"
+              },
+              "mark": {
+                "colors": [
+                  "#5865F2",
+                  "#20D3BC",
+                  "#FF7968",
+                  "#9B8CFF",
+                  "#63E6D2",
+                  "#FFB3A8",
+                  "#111827",
+                  "#CBD2FF"
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 3,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "rt09",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "case_domain",
+                  "fields": [
+                    {
+                      "name": "domain",
+                      "expression": "`domain`"
+                    },
+                    {
+                      "name": "prevented_loss_usd",
+                      "expression": "SUM(`prevented_loss_usd`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "domain",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  },
+                  "displayName": "Domínio"
+                },
+                "y": {
+                  "fieldName": "prevented_loss_usd",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "USD"
+                },
+                "label": {
+                  "show": true
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Perda evitada por domínio · Pérdida evitada"
+              },
+              "mark": {
+                "colors": [
+                  "#5865F2",
+                  "#20D3BC",
+                  "#FF7968",
+                  "#9B8CFF",
+                  "#63E6D2",
+                  "#FFB3A8",
+                  "#111827",
+                  "#CBD2FF"
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 9,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "rt10",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "credit_country",
+                  "fields": [
+                    {
+                      "name": "country_code",
+                      "expression": "`country_code`"
+                    },
+                    {
+                      "name": "approval_rate_pct",
+                      "expression": "SUM(`approval_rate_pct`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "country_code",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  },
+                  "displayName": "País"
+                },
+                "y": {
+                  "fieldName": "approval_rate_pct",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Aprovação (%)"
+                },
+                "label": {
+                  "show": true
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Crédito responsável por país"
+              },
+              "mark": {
+                "colors": [
+                  "#5865F2",
+                  "#20D3BC",
+                  "#FF7968",
+                  "#9B8CFF",
+                  "#63E6D2",
+                  "#FFB3A8",
+                  "#111827",
+                  "#CBD2FF"
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 9,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "rt11",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "dq_detail",
+                  "fields": [
+                    {
+                      "name": "dataset_name",
+                      "expression": "`dataset_name`"
+                    },
+                    {
+                      "name": "bronze_rows",
+                      "expression": "`bronze_rows`"
+                    },
+                    {
+                      "name": "silver_rows",
+                      "expression": "`silver_rows`"
+                    },
+                    {
+                      "name": "quarantine_rows",
+                      "expression": "`quarantine_rows`"
+                    },
+                    {
+                      "name": "acceptance_rate_pct",
+                      "expression": "`acceptance_rate_pct`"
+                    },
+                    {
+                      "name": "reconciliation_rate_pct",
+                      "expression": "`reconciliation_rate_pct`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "dataset_name",
+                    "type": "string",
+                    "displayAs": "string",
+                    "title": "Dataset",
+                    "displayName": "Dataset",
+                    "order": 0,
+                    "alignContent": "left"
+                  },
+                  {
+                    "fieldName": "bronze_rows",
+                    "type": "integer",
+                    "displayAs": "number",
+                    "title": "Bronze",
+                    "displayName": "Bronze",
+                    "order": 1,
+                    "alignContent": "right",
+                    "numberFormat": "0"
+                  },
+                  {
+                    "fieldName": "silver_rows",
+                    "type": "integer",
+                    "displayAs": "number",
+                    "title": "Silver",
+                    "displayName": "Silver",
+                    "order": 2,
+                    "alignContent": "right",
+                    "numberFormat": "0"
+                  },
+                  {
+                    "fieldName": "quarantine_rows",
+                    "type": "integer",
+                    "displayAs": "number",
+                    "title": "Quarentena",
+                    "displayName": "Quarentena",
+                    "order": 3,
+                    "alignContent": "right",
+                    "numberFormat": "0"
+                  },
+                  {
+                    "fieldName": "acceptance_rate_pct",
+                    "type": "float",
+                    "displayAs": "number",
+                    "title": "Aceitação (%)",
+                    "displayName": "Aceitação (%)",
+                    "order": 4,
+                    "alignContent": "right",
+                    "numberFormat": "0.00"
+                  },
+                  {
+                    "fieldName": "reconciliation_rate_pct",
+                    "type": "float",
+                    "displayAs": "number",
+                    "title": "Reconciliação (%)",
+                    "displayName": "Reconciliação (%)",
+                    "order": 5,
+                    "alignContent": "right",
+                    "numberFormat": "0.00"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Data Trust · Confianza de datos"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 15,
+            "width": 6,
+            "height": 7
+          }
+        }
+      ]
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_LEFT"
+    },
+    "applyModeEnabled": false
+  }
+}

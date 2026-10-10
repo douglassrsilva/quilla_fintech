@@ -1,0 +1,52 @@
+{
+  "version": 2,
+  "config": {
+    "sample_questions": [
+      {
+        "id": "60000000000000000000000000000001",
+        "question": ["Compare conversão, churn, receita e CLV por país e segmento nos meses disponíveis."]
+      },
+      {
+        "id": "60000000000000000000000000000002",
+        "question": ["¿Cómo cambia la aceptación de ofertas según tipo, canal, tasa ofrecida y régimen macroeconómico?"]
+      },
+      {
+        "id": "60000000000000000000000000000003",
+        "question": ["Mostre a distribuição de perfis de investimento por objetivo, horizonte, liquidez e capacidade de perda."]
+      },
+      {
+        "id": "60000000000000000000000000000004",
+        "question": ["¿Qué clases de activos concentran más compras y recomendaciones aceptadas por país?"]
+      }
+    ]
+  },
+  "data_sources": {
+    "tables": [
+      {"identifier": "example_catalog.example_gold.metrics_growth_customer"},
+      {"identifier": "example_catalog.example_gold.metrics_investor_suitability"},
+      {"identifier": "example_catalog.example_gold.metrics_macro_stress"},
+      {"identifier": "example_catalog.example_gold.metrics_pricing_profitability"},
+      {"identifier": "example_catalog.example_gold.metrics_wealth_engagement"}
+    ]
+  },
+  "instructions": {
+    "text_instructions": [
+      {
+        "content": [
+          "Responda no idioma da pergunta: português do Brasil ou espanhol latino-americano.",
+          "Todo dado, perfil, produto, outcome e recomendação é sintético e demonstrativo; derive e informe a data máxima da Metric View consultada.",
+          "Use exclusivamente as Metric Views Gold: metrics_growth_customer, metrics_pricing_profitability, metrics_wealth_engagement, metrics_investor_suitability e metrics_macro_stress.",
+          "Consulte medidas sempre com MEASURE(...), agrupe somente pelas dimensões declaradas e prefira as medidas ponderadas fornecidas pela camada semântica.",
+          "Nunca mostre party_id, profile_id, account_id ou experiment_id nem produza recomendação individual.",
+          "clv_usd_12m é valor sintético projetado; revenue_usd_90d e contribution_margin_usd_90d são horizontes de 90 dias e não devem ser tratados como receita contábil.",
+          "Taxas de aceite, conversão, churn e breaches são razões entre 0 e 1; apresente-as como percentuais.",
+          "weighted_average_offered_apr_bps e weighted_average_fee_bps estão em pontos-base; 100 bps equivalem a 1 ponto percentual.",
+          "Para investimentos, diferencie tolerância declarada, capacidade de perda, objetivo, horizonte e necessidade de liquidez. Nenhum deles isoladamente determina suitability.",
+          "Nunca dê aconselhamento de investimento, promessa de retorno ou recomendação de compra/venda. Inclua disclaimer e encaminhe decisões a um profissional autorizado com política local.",
+          "Não presuma que um produto ou política seja elegível nos 12 países. Se a fonte não comprovar elegibilidade, declare a limitação.",
+          "Finalize toda resposta no idioma do usuário com um aviso explícito de que os dados são sintéticos e não constituem aconselhamento financeiro, jurídico ou regulatório."
+        ]
+      }
+    ]
+  }
+}

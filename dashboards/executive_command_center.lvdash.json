@@ -1,0 +1,696 @@
+{
+  "datasets": [
+    {
+      "name": "exec_kpis",
+      "displayName": "exec_kpis",
+      "queryLines": [
+        "\nSELECT\n  MEASURE(gross_volume_usd) AS gross_volume_usd,\n  MEASURE(total_events) AS total_events,\n  100 * MEASURE(completion_rate) AS completion_rate_pct,\n  100 * MEASURE(fraud_rate) AS fraud_rate_pct,\n  MEASURE(net_flow_usd) AS net_flow_usd,\n  MEASURE(cross_border_volume_usd) AS cross_border_volume_usd\nFROM example_catalog.example_gold.metrics_financial_performance\n"
+      ]
+    },
+    {
+      "name": "exec_country",
+      "displayName": "exec_country",
+      "queryLines": [
+        "\nSELECT country_code,\n  MEASURE(gross_volume_usd) AS gross_volume_usd,\n  100 * MEASURE(completion_rate) AS completion_rate_pct,\n  100 * MEASURE(fraud_rate) AS fraud_rate_pct\nFROM example_catalog.example_gold.metrics_financial_performance\nGROUP BY country_code\n"
+      ]
+    },
+    {
+      "name": "exec_month",
+      "displayName": "exec_month",
+      "queryLines": [
+        "\nSELECT DATE_TRUNC('MONTH', event_date) AS month,\n  'Volume USD' AS series, MEASURE(gross_volume_usd) AS value\nFROM example_catalog.example_gold.metrics_financial_performance GROUP BY ALL\nUNION ALL\nSELECT DATE_TRUNC('MONTH', event_date), 'Fluxo líquido USD', MEASURE(net_flow_usd)\nFROM example_catalog.example_gold.metrics_financial_performance GROUP BY ALL\n"
+      ]
+    },
+    {
+      "name": "exec_credit",
+      "displayName": "exec_credit",
+      "queryLines": [
+        "\nSELECT country_code,\n  100 * MEASURE(approval_rate) AS approval_rate_pct,\n  MEASURE(applications) AS applications,\n  MEASURE(approved_amount_local) AS approved_amount_local\nFROM example_catalog.example_gold.metrics_credit_portfolio GROUP BY country_code\n"
+      ]
+    },
+    {
+      "name": "exec_risk",
+      "displayName": "exec_risk",
+      "queryLines": [
+        "\nSELECT country_code,\n  MEASURE(total_alerts) AS total_alerts,\n  100 * MEASURE(confirmation_rate) AS confirmation_rate_pct,\n  100 * MEASURE(false_positive_rate) AS false_positive_rate_pct\nFROM example_catalog.example_gold.metrics_risk_operations GROUP BY country_code\n"
+      ]
+    },
+    {
+      "name": "exec_freshness",
+      "displayName": "exec_freshness",
+      "queryLines": [
+        "\nSELECT MAX(event_date) AS max_event_date,\n  SUM(CASE WHEN event_date = (SELECT MAX(event_date) FROM example_catalog.example_gold.mv_financial_performance_daily)\n      THEN event_count ELSE 0 END) AS latest_day_events\nFROM example_catalog.example_gold.mv_financial_performance_daily\n"
+      ]
+    },
+    {
+      "name": "exec_quality",
+      "displayName": "exec_quality",
+      "queryLines": [
+        "\nSELECT 100 * MEASURE(reconciliation_rate) AS reconciliation_rate_pct,\n  100 * MEASURE(global_acceptance_rate) AS acceptance_rate_pct,\n  MEASURE(quarantine_rows) AS quarantine_rows\nFROM example_catalog.example_gold.metrics_data_quality\n"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "visao_regional",
+      "displayName": "visao_regional",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layout": [
+        {
+          "widget": {
+            "name": "ex01",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "exec_kpis",
+                  "fields": [
+                    {
+                      "name": "gross_volume_usd",
+                      "expression": "`gross_volume_usd`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "gross_volume_usd",
+                  "displayName": "Volume regional USD · Volumen regional",
+                  "numberFormat": "$,.2f"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Volume regional USD · Volumen regional"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "ex02",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "exec_kpis",
+                  "fields": [
+                    {
+                      "name": "completion_rate_pct",
+                      "expression": "`completion_rate_pct`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "completion_rate_pct",
+                  "displayName": "Conclusão · Finalización (%)",
+                  "numberFormat": "0.00"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Conclusão · Finalización (%)"
+              }
+            }
+          },
+          "position": {
+            "x": 1,
+            "y": 0,
+            "width": 1,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "ex03",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "exec_kpis",
+                  "fields": [
+                    {
+                      "name": "fraud_rate_pct",
+                      "expression": "`fraud_rate_pct`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "fraud_rate_pct",
+                  "displayName": "Fraude sinalizada · Fraude (%)",
+                  "numberFormat": "0.00"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Fraude sinalizada · Fraude (%)"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 1,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "ex04",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "exec_kpis",
+                  "fields": [
+                    {
+                      "name": "net_flow_usd",
+                      "expression": "`net_flow_usd`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "net_flow_usd",
+                  "displayName": "Fluxo líquido · Flujo neto USD",
+                  "numberFormat": "$,.2f"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Fluxo líquido · Flujo neto USD"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 0,
+            "width": 1,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "ex05",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "exec_quality",
+                  "fields": [
+                    {
+                      "name": "reconciliation_rate_pct",
+                      "expression": "`reconciliation_rate_pct`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "reconciliation_rate_pct",
+                  "displayName": "Reconciliação · Reconciliación (%)",
+                  "numberFormat": "0.00"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Reconciliação · Reconciliación (%)"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 1,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "ex06",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "exec_freshness",
+                  "fields": [
+                    {
+                      "name": "latest_day_events",
+                      "expression": "`latest_day_events`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "latest_day_events",
+                  "displayName": "Eventos no dia mais recente",
+                  "numberFormat": "0"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Eventos no dia mais recente"
+              }
+            }
+          },
+          "position": {
+            "x": 5,
+            "y": 0,
+            "width": 1,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "ex07",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "exec_country",
+                  "fields": [
+                    {
+                      "name": "country_code",
+                      "expression": "`country_code`"
+                    },
+                    {
+                      "name": "gross_volume_usd",
+                      "expression": "SUM(`gross_volume_usd`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "country_code",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  },
+                  "displayName": "País"
+                },
+                "y": {
+                  "fieldName": "gross_volume_usd",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "USD"
+                },
+                "label": {
+                  "show": true
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Volume por país · Volumen por país"
+              },
+              "mark": {
+                "colors": [
+                  "#5865F2",
+                  "#20D3BC",
+                  "#FF7968",
+                  "#9B8CFF",
+                  "#63E6D2",
+                  "#FFB3A8",
+                  "#111827",
+                  "#CBD2FF"
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 3,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "ex08",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "exec_month",
+                  "fields": [
+                    {
+                      "name": "month",
+                      "expression": "`month`"
+                    },
+                    {
+                      "name": "value",
+                      "expression": "SUM(`value`)"
+                    },
+                    {
+                      "name": "series",
+                      "expression": "`series`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "month",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "displayName": "Mês · Mes"
+                },
+                "y": {
+                  "fieldName": "value",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "USD"
+                },
+                "color": {
+                  "fieldName": "series",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "series"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Volume e fluxo líquido · Volumen y flujo neto"
+              },
+              "mark": {
+                "colors": [
+                  "#5865F2",
+                  "#20D3BC",
+                  "#FF7968",
+                  "#9B8CFF",
+                  "#63E6D2",
+                  "#FFB3A8",
+                  "#111827",
+                  "#CBD2FF"
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 3,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "ex09",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "exec_credit",
+                  "fields": [
+                    {
+                      "name": "country_code",
+                      "expression": "`country_code`"
+                    },
+                    {
+                      "name": "approval_rate_pct",
+                      "expression": "SUM(`approval_rate_pct`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "country_code",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  },
+                  "displayName": "País"
+                },
+                "y": {
+                  "fieldName": "approval_rate_pct",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "%"
+                },
+                "label": {
+                  "show": true
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Aprovação de crédito · Aprobación"
+              },
+              "mark": {
+                "colors": [
+                  "#5865F2",
+                  "#20D3BC",
+                  "#FF7968",
+                  "#9B8CFF",
+                  "#63E6D2",
+                  "#FFB3A8",
+                  "#111827",
+                  "#CBD2FF"
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 9,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "ex10",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "exec_risk",
+                  "fields": [
+                    {
+                      "name": "country_code",
+                      "expression": "`country_code`"
+                    },
+                    {
+                      "name": "confirmation_rate_pct",
+                      "expression": "SUM(`confirmation_rate_pct`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "country_code",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  },
+                  "displayName": "País"
+                },
+                "y": {
+                  "fieldName": "confirmation_rate_pct",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "%"
+                },
+                "label": {
+                  "show": true
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Confirmação de alertas · Confirmación"
+              },
+              "mark": {
+                "colors": [
+                  "#5865F2",
+                  "#20D3BC",
+                  "#FF7968",
+                  "#9B8CFF",
+                  "#63E6D2",
+                  "#FFB3A8",
+                  "#111827",
+                  "#CBD2FF"
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 9,
+            "width": 3,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "ex11",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "exec_country",
+                  "fields": [
+                    {
+                      "name": "country_code",
+                      "expression": "`country_code`"
+                    },
+                    {
+                      "name": "gross_volume_usd",
+                      "expression": "`gross_volume_usd`"
+                    },
+                    {
+                      "name": "completion_rate_pct",
+                      "expression": "`completion_rate_pct`"
+                    },
+                    {
+                      "name": "fraud_rate_pct",
+                      "expression": "`fraud_rate_pct`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "country_code",
+                    "type": "string",
+                    "displayAs": "string",
+                    "title": "País",
+                    "displayName": "País",
+                    "order": 0,
+                    "alignContent": "left"
+                  },
+                  {
+                    "fieldName": "gross_volume_usd",
+                    "type": "float",
+                    "displayAs": "number",
+                    "title": "Volume USD",
+                    "displayName": "Volume USD",
+                    "order": 1,
+                    "alignContent": "right",
+                    "numberFormat": "$,.2f"
+                  },
+                  {
+                    "fieldName": "completion_rate_pct",
+                    "type": "float",
+                    "displayAs": "number",
+                    "title": "Conclusão (%)",
+                    "displayName": "Conclusão (%)",
+                    "order": 2,
+                    "alignContent": "right",
+                    "numberFormat": "0.00"
+                  },
+                  {
+                    "fieldName": "fraud_rate_pct",
+                    "type": "float",
+                    "displayAs": "number",
+                    "title": "Fraude (%)",
+                    "displayName": "Fraude (%)",
+                    "order": 3,
+                    "alignContent": "right",
+                    "numberFormat": "0.00"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Placar regional · Marcador regional"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 15,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ]
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_LEFT"
+    },
+    "applyModeEnabled": false
+  }
+}

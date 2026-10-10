@@ -1,0 +1,50 @@
+resources:
+  jobs:
+    quilla_genai_review_battery:
+      name: "[${bundle.target}] Quilla | Rich GenAI Review Battery"
+      description: Gera e valida 216 traces PT/ES variados para Sessions, Scorers e Review Queues.
+      max_concurrent_runs: 1
+      timeout_seconds: 14400
+      queue:
+        enabled: true
+      tags:
+        project: quilla
+        workload: genai-human-review
+        managed_by: dabs
+        governance: unity-catalog
+        data_classification: synthetic
+      tasks:
+        - task_key: seed_rich_review_traces
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/ai/48_seed_rich_review_traces.py
+            source: WORKSPACE
+            base_parameters: &review_battery_parameters
+              catalog: ${var.catalog}
+              ai_schema: ${resources.schemas.quilla_ai.name}
+              sql_warehouse_id: ${var.sql_warehouse_id}
+              experiment_path: /Users/${workspace.current_user.userName}/quilla-genai-${bundle.target}
+              trace_table_prefix: quilla_genai_${bundle.target}
+              review_release: ${var.genai_review_release}
+          environment_key: review_battery_env
+          timeout_seconds: 10800
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: validate_rich_review_traces
+          depends_on:
+            - task_key: seed_rich_review_traces
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/ai/49_validate_rich_review_traces.py
+            source: WORKSPACE
+            base_parameters: *review_battery_parameters
+          environment_key: review_battery_env
+          timeout_seconds: 3600
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+      environments:
+        - environment_key: review_battery_env
+          spec:
+            client: "4"
+            dependencies:
+              - "mlflow[databricks]>=3.15.0,<4"

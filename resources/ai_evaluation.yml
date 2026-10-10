@@ -1,0 +1,93 @@
+resources:
+  jobs:
+    quilla_genai_offline_evaluation:
+      name: "[${bundle.target}] Quilla | GenAI Offline Evaluation"
+      description: Publica golden datasets PT/ES, compara baseline e candidate e executa juízes semânticos no MLflow.
+      max_concurrent_runs: 1
+      timeout_seconds: 21600
+      queue:
+        enabled: true
+      tags:
+        project: quilla
+        workload: genai-offline-evaluation
+        managed_by: dabs
+        governance: unity-catalog
+        data_classification: synthetic
+      tasks:
+        - task_key: build_evaluation_datasets
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/ai/44_build_evaluation_datasets.py
+            source: WORKSPACE
+            base_parameters: &offline_eval_parameters
+              catalog: ${var.catalog}
+              ai_schema: ${resources.schemas.quilla_ai.name}
+              sql_warehouse_id: ${var.sql_warehouse_id}
+              experiment_path: /Users/${workspace.current_user.userName}/quilla-genai-${bundle.target}
+              trace_table_prefix: quilla_genai_${bundle.target}
+              evaluation_release: ${var.genai_eval_release}
+              semantic_rows: ${var.genai_semantic_rows}
+          environment_key: genai_eval_env
+          timeout_seconds: 3600
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: evaluate_baseline
+          depends_on:
+            - task_key: build_evaluation_datasets
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/ai/45_run_offline_evaluation.py
+            source: WORKSPACE
+            base_parameters:
+              <<: *offline_eval_parameters
+              variant: baseline
+          environment_key: genai_eval_env
+          timeout_seconds: 5400
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: evaluate_candidate
+          depends_on:
+            - task_key: build_evaluation_datasets
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/ai/45_run_offline_evaluation.py
+            source: WORKSPACE
+            base_parameters:
+              <<: *offline_eval_parameters
+              variant: candidate
+          environment_key: genai_eval_env
+          timeout_seconds: 5400
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: evaluate_candidate_semantic
+          depends_on:
+            - task_key: build_evaluation_datasets
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/ai/46_run_semantic_evaluation.py
+            source: WORKSPACE
+            base_parameters: *offline_eval_parameters
+          environment_key: genai_eval_env
+          timeout_seconds: 10800
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: validate_offline_evaluation
+          depends_on:
+            - task_key: evaluate_baseline
+            - task_key: evaluate_candidate
+            - task_key: evaluate_candidate_semantic
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/ai/47_validate_offline_evaluation.py
+            source: WORKSPACE
+            base_parameters: *offline_eval_parameters
+          environment_key: genai_eval_env
+          timeout_seconds: 3600
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+      environments:
+        - environment_key: genai_eval_env
+          spec:
+            client: "4"
+            dependencies:
+              - "mlflow[databricks]>=3.15.0,<4"

@@ -1,0 +1,53 @@
+{
+  "version": 2,
+  "config": {
+    "sample_questions": [
+      {
+        "id": "50000000000000000000000000000001",
+        "question": ["Mostre a distribuição de clientes por segmento, país, KYC e faixa de risco."]
+      },
+      {
+        "id": "50000000000000000000000000000002",
+        "question": ["¿Qué segmentos presentan más alertas abiertas y peor sentimiento promedio por país?"]
+      },
+      {
+        "id": "50000000000000000000000000000003",
+        "question": ["Quais conjuntos de dados têm maior volume em quarentena e menor taxa de aceitação?"]
+      },
+      {
+        "id": "50000000000000000000000000000004",
+        "question": ["¿La reconciliación Bronze, Silver y cuarentena está completa para todos los dominios?"]
+      }
+    ]
+  },
+  "data_sources": {
+    "tables": [
+      {"identifier": "example_catalog.example_gold.metrics_data_quality"},
+      {"identifier": "example_catalog.example_gold.metrics_growth_customer"},
+      {"identifier": "example_catalog.example_gold.mv_customer_360"}
+    ]
+  },
+  "instructions": {
+    "text_instructions": [
+      {
+        "content": [
+          "Responda no idioma da pergunta: português do Brasil ou espanhol latino-americano.",
+          "Todo dado é sintético e demonstrativo. O snapshot histórico termina em 31 de agosto de 2026, mas atributos de atividade podem refletir eventos Zerobus posteriores; derive datas da fonte.",
+          "Por padrão, produza análises agregadas por país, segmento, status ou faixa de risco e nunca liste identidades individuais.",
+          "Uma análise Customer 360 individual só é permitida quando a pergunta contém exatamente um party_id sintético completo no formato QPTY-XXXXXXXXXXXX. Use esse identificador como filtro exato, não procure o cliente por nome e não inclua linhas de qualquer outro cliente.",
+          "Na resposta individual, não repita party_id, não exponha display_name, contatos, documentos ou identificadores de contas; apresente somente saldos agregados, atividade, segmento, KYC, sinais de risco, alertas e relacionamento necessários à finalidade declarada.",
+          "Saldos em current_balance_local e available_balance_local só podem ser somados dentro da mesma moeda implícita do país; não consolide regionalmente.",
+          "A diferença entre current_balance_local e available_balance_local é somente saldo não disponível. Não a chame de retenção, bloqueio ou efeito de alertas sem uma fonte que comprove a causa.",
+          "lifetime_volume_usd permite comparação regional, mas representa histórico sintético acumulado, não receita.",
+          "average_sentiment_score e average_event_risk_score são sinais analíticos; explique suas limitações e nunca os use isoladamente para negar, restringir ou recomendar um produto.",
+          "Use metrics_growth_customer para conversão, churn, receita, margem e CLV agregados. Para um indivíduo, use somente mv_customer_360 e trate qualquer próxima ação como hipótese sujeita a elegibilidade, política e revisão humana.",
+          "Em qualidade, use MEASURE(global_acceptance_rate) e MEASURE(reconciliation_rate), que são razões entre 0 e 1; apresente-as como percentuais.",
+          "Quarentena não significa necessariamente perda: representa registros retidos por regras DQX para correção ou revisão.",
+          "Não atribua causa a correlações entre atendimento, risco e atividade sem evidência adicional.",
+          "Se o usuário pedir informação individual apenas por nome, múltiplos clientes, contatos ou exportação, recuse de forma breve e ofereça uma visão agregada segura. Um nome nunca é chave de busca autorizada.",
+          "Finalize toda resposta no idioma do usuário com um aviso explícito de que os dados são sintéticos e não constituem aconselhamento financeiro, jurídico ou regulatório."
+        ]
+      }
+    ]
+  }
+}

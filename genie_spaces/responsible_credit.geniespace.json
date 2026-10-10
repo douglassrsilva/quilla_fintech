@@ -1,0 +1,51 @@
+{
+  "version": 2,
+  "config": {
+    "sample_questions": [
+      {
+        "id": "40000000000000000000000000000001",
+        "question": ["Compare taxa de aprovação, valor solicitado e taxa anual média por país e faixa de política."]
+      },
+      {
+        "id": "40000000000000000000000000000002",
+        "question": ["¿Cómo cambió el embudo de crédito por producto durante los últimos doce meses disponibles?"]
+      },
+      {
+        "id": "40000000000000000000000000000003",
+        "question": ["Quais mercados combinam queda de aprovação e aumento de risco médio?"]
+      },
+      {
+        "id": "40000000000000000000000000000004",
+        "question": ["¿Qué bandas de política concentran más solicitudes y cuál es su tasa de aprobación?"]
+      }
+    ]
+  },
+  "data_sources": {
+    "tables": [
+      {"identifier": "example_catalog.example_gold.metrics_credit_portfolio"},
+      {"identifier": "example_catalog.example_gold.metrics_macro_stress"},
+      {"identifier": "example_catalog.example_gold.metrics_pricing_profitability"},
+      {"identifier": "example_catalog.example_gold.mv_credit_portfolio_monthly"}
+    ]
+  },
+  "instructions": {
+    "text_instructions": [
+      {
+        "content": [
+          "Responda no idioma da pergunta: português do Brasil ou espanhol latino-americano.",
+          "Todo dado é sintético e demonstrativo; a data máxima é 31 de agosto de 2026.",
+          "Use metrics_credit_portfolio para KPIs e mv_credit_portfolio_monthly para séries por mês, país, produto, decisão, policy_band e moeda.",
+          "Use metrics_pricing_profitability para aceite, APR e margem ajustada a risco; use metrics_macro_stress apenas para contexto agregado por país e data.",
+          "requested_amount_local e approved_amount_local não podem ser somados regionalmente entre moedas diferentes; agrupe por currency_code ou país.",
+          "approval_rate é razão entre 0 e 1 e deve sempre ser multiplicada por 100 na apresentação: por exemplo, 0.6325 deve ser exibido como 63,25%, nunca como 0,6325. annual_rate_bps está em pontos-base: 100 bps equivalem a 1 ponto percentual ao ano.",
+          "application_count conta solicitações; applicant_count é distinto dentro de cada grupo e não deve ser somado entre grupos como se fosse único globalmente.",
+          "Nunca recomende aprovação, recusa, limite ou preço para um indivíduo. Produza somente análise agregada e hipóteses para revisão humana.",
+          "Não trate policy_band como requisito regulatório e não presuma equivalência de política entre os 12 países.",
+          "Para regulação ou aconselhamento, encaminhe ao agente regulatório e inclua disclaimer.",
+          "Se faltarem inadimplência, perda ou renda na fonte consultada, declare a limitação; não invente métricas.",
+          "Finalize toda resposta no idioma do usuário com um aviso explícito de que os dados são sintéticos e não constituem aconselhamento financeiro, jurídico ou regulatório."
+        ]
+      }
+    ]
+  }
+}

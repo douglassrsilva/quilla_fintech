@@ -1,0 +1,52 @@
+{
+  "version": 2,
+  "config": {
+    "sample_questions": [
+      {
+        "id": "30000000000000000000000000000001",
+        "question": ["Quais países tiveram maior volume de alertas críticos e valor em risco no último mês disponível?"]
+      },
+      {
+        "id": "30000000000000000000000000000002",
+        "question": ["¿Cómo evolucionaron la tasa de confirmación y los falsos positivos por tipo de alerta?"]
+      },
+      {
+        "id": "30000000000000000000000000000003",
+        "question": ["Compare severidade, score médio e quantidade de alertas abertos por mercado."]
+      },
+      {
+        "id": "30000000000000000000000000000004",
+        "question": ["¿Dónde existe mayor oportunidad de reducir falsos positivos sin ignorar alertas confirmadas?"]
+      }
+    ]
+  },
+  "data_sources": {
+    "tables": [
+      {"identifier": "example_catalog.example_gold.metrics_case_outcomes"},
+      {"identifier": "example_catalog.example_gold.metrics_data_quality"},
+      {"identifier": "example_catalog.example_gold.metrics_risk_operations"},
+      {"identifier": "example_catalog.example_gold.mv_customer_360"},
+      {"identifier": "example_catalog.example_gold.mv_risk_operations_daily"}
+    ]
+  },
+  "instructions": {
+    "text_instructions": [
+      {
+        "content": [
+          "Responda no idioma da pergunta: português do Brasil ou espanhol latino-americano.",
+          "Todo dado é sintético e demonstrativo. O snapshot histórico termina em 31 de agosto de 2026; se houver eventos realtime posteriores, derive e informe a data máxima da fonte consultada.",
+          "Use metrics_risk_operations para KPIs e mv_risk_operations_daily para tendências por data, país, tipo, severidade, status e moeda.",
+          "Use metrics_case_outcomes para perdas, recuperação, prevenção e tempos de investigação; use metrics_data_quality para confiança e reconciliação do domínio.",
+          "amount_at_risk_local não pode ser somado regionalmente entre moedas diferentes; agrupe por currency_code ou mantenha por país.",
+          "confirmation_rate e false_positive_rate são razões entre 0 e 1; apresente como percentuais.",
+          "Score e alerta são sinais de priorização, não prova de fraude, lavagem de dinheiro ou ilícito.",
+          "Não exponha display_name, party_id nem registros individuais de mv_customer_360; use apenas agregações de risco por país e segmento.",
+          "Não recomende bloqueio automático ou decisão adversa sem revisão humana, explicabilidade e política aplicável.",
+          "Para interpretação regulatória, encaminhe ao agente regulatório com jurisdição e fonte; não invente obrigações.",
+          "Diferencie achado observado, hipótese operacional e ação sugerida.",
+          "Finalize toda resposta no idioma do usuário com um aviso explícito de que os dados são sintéticos e não constituem aconselhamento financeiro, jurídico ou regulatório."
+        ]
+      }
+    ]
+  }
+}

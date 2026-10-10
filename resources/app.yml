@@ -1,0 +1,165 @@
+resources:
+  postgres_databases:
+    quilla_ltap_database:
+      database_id: ${var.lakebase_database_resource_id}
+      parent: projects/${var.lakebase_project}/branches/${var.lakebase_branch}
+      postgres_database: ${var.lakebase_database}
+      role: ${var.lakebase_owner_role}
+      replace_existing: true
+      lifecycle:
+        prevent_destroy: true
+
+  apps:
+    quilla_app:
+      name: quilla-${bundle.target}
+      description: Quilla Financial Intelligence · demonstração LTAP, ML e GenAI governada
+      source_code_path: ..
+      lifecycle:
+        started: true
+        prevent_destroy: true
+      user_api_scopes:
+        - model-serving
+        - ai-gateway
+        - vector-search
+        - genie
+        - sql
+      config:
+        command: ["python", "-m", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+        env:
+          - name: QUILLA_SUPERVISOR_ENDPOINT
+            value: ${var.supervisor_endpoint_name}
+          - name: QUILLA_RUNTIME_MODE
+            value: in_process
+          - name: QUILLA_OBO_REQUIRED
+            value: "true"
+          - name: QUILLA_CATALOG
+            value: ${var.catalog}
+          - name: QUILLA_GOLD_SCHEMA
+            value: ${var.gold_schema}
+          - name: QUILLA_ML_SCHEMA
+            value: ${var.ml_schema}
+          - name: QUILLA_AI_SCHEMA
+            value: ${var.ai_schema}
+          - name: QUILLA_SQL_WAREHOUSE_ID
+            value: ${var.sql_warehouse_id}
+          - name: QUILLA_GATEWAY_PRIMARY_SERVICE
+            value: ${var.primary_model_service}
+          - name: QUILLA_GATEWAY_GUARD_SERVICE
+            value: ${var.guard_judge_model_service}
+          - name: QUILLA_PRIMARY_MODEL
+            value: ${var.catalog}.${var.ai_schema}.${var.primary_model_service}
+          - name: QUILLA_VERIFIER_MODEL
+            value: ${var.catalog}.${var.ai_schema}.${var.verifier_model_service}
+          - name: QUILLA_LONG_CONTEXT_MODEL
+            value: ${var.catalog}.${var.ai_schema}.${var.long_context_model_service}
+          - name: QUILLA_SUPERVISOR_RELEASE
+            value: ${var.supervisor_release}
+          - name: QUILLA_TENANT_ID
+            value: quilla-demo
+          - name: QUILLA_CHAT_TIMEOUT_SECONDS
+            value: "180"
+          - name: QUILLA_HEARTBEAT_SECONDS
+            value: "5"
+          - name: QUILLA_DATABASE_REQUIRED
+            value: "true"
+          - name: QUILLA_MEMORY_ENABLED
+            value: "true"
+          - name: QUILLA_MEMORY_REQUIRED
+            value: "true"
+          - name: QUILLA_DEMO_MODE
+            value: "true"
+          - name: QUILLA_ALLOW_DEMO_CONTEXT
+            value: "false"
+          - name: QUILLA_LAKEBASE_PROJECT
+            value: ${var.lakebase_project}
+          - name: QUILLA_LAKEBASE_BRANCH
+            value: ${var.lakebase_branch}
+          - name: QUILLA_LAKEBASE_ENDPOINT
+            value: ${var.lakebase_endpoint}
+          - name: QUILLA_LAKEBASE_DATABASE
+            value: ${var.lakebase_database}
+          - name: QUILLA_GENIE_EXECUTIVE_REGIONAL
+            value: ${resources.genie_spaces.quilla_executive_regional.id}
+          - name: QUILLA_GENIE_PAYMENTS_PERFORMANCE
+            value: ${resources.genie_spaces.quilla_payments_performance.id}
+          - name: QUILLA_GENIE_RISK_FRAUD
+            value: ${resources.genie_spaces.quilla_risk_fraud.id}
+          - name: QUILLA_GENIE_RESPONSIBLE_CREDIT
+            value: ${resources.genie_spaces.quilla_responsible_credit.id}
+          - name: QUILLA_GENIE_CUSTOMER_OPERATIONS
+            value: ${resources.genie_spaces.quilla_customer_operations.id}
+          - name: QUILLA_GENIE_GROWTH_WEALTH
+            value: ${resources.genie_spaces.quilla_growth_wealth.id}
+          - name: QUILLA_REALTIME_JOB_ID
+            value: ${resources.jobs.simulate_realtime_events.id}
+          - name: QUILLA_NEXT_BEST_ACTION_ENDPOINT
+            value: quilla-next-best-action
+          - name: QUILLA_DASHBOARD_EXECUTIVE
+            value: ${resources.dashboards.quilla_executive_command_center.id}
+          - name: QUILLA_DASHBOARD_GROWTH
+            value: ${resources.dashboards.quilla_growth_profitability.id}
+          - name: QUILLA_DASHBOARD_WEALTH
+            value: ${resources.dashboards.quilla_wealth_macro.id}
+          - name: QUILLA_DASHBOARD_RISK
+            value: ${resources.dashboards.quilla_risk_trust.id}
+      resources:
+        - name: lakebase
+          description: Memória conversacional e estado LTAP
+          postgres:
+            branch: projects/${var.lakebase_project}/branches/${var.lakebase_branch}
+            database: projects/${var.lakebase_project}/branches/${var.lakebase_branch}/databases/${resources.postgres_databases.quilla_ltap_database.database_id}
+            permission: CAN_CONNECT_AND_CREATE
+        - name: analytics-warehouse
+          description: Camada semântica e consultas analíticas do App
+          sql_warehouse:
+            id: ${var.sql_warehouse_id}
+            permission: CAN_USE
+        - name: next-best-action
+          description: Champion MLflow para scoring online de próxima melhor ação
+          serving_endpoint:
+            name: quilla-next-best-action
+            permission: CAN_QUERY
+        - name: realtime-simulator
+          description: Simulador Zerobus e atualização incremental Medallion
+          job:
+            id: ${resources.jobs.simulate_realtime_events.id}
+            permission: CAN_MANAGE_RUN
+        - name: genie-executive-regional
+          description: Inteligência executiva e regional governada
+          genie_space:
+            name: genie-executive-regional
+            space_id: ${resources.genie_spaces.quilla_executive_regional.id}
+            permission: CAN_RUN
+        - name: genie-payments-performance
+          description: Inteligência de pagamentos e performance
+          genie_space:
+            name: genie-payments-performance
+            space_id: ${resources.genie_spaces.quilla_payments_performance.id}
+            permission: CAN_RUN
+        - name: genie-risk-fraud
+          description: Inteligência de risco e fraude
+          genie_space:
+            name: genie-risk-fraud
+            space_id: ${resources.genie_spaces.quilla_risk_fraud.id}
+            permission: CAN_RUN
+        - name: genie-responsible-credit
+          description: Inteligência de crédito responsável
+          genie_space:
+            name: genie-responsible-credit
+            space_id: ${resources.genie_spaces.quilla_responsible_credit.id}
+            permission: CAN_RUN
+        - name: genie-customer-operations
+          description: Inteligência de clientes e operações
+          genie_space:
+            name: genie-customer-operations
+            space_id: ${resources.genie_spaces.quilla_customer_operations.id}
+            permission: CAN_RUN
+        - name: genie-growth-wealth
+          description: Inteligência de crescimento e investimentos
+          genie_space:
+            name: genie-growth-wealth
+            space_id: ${resources.genie_spaces.quilla_growth_wealth.id}
+            permission: CAN_RUN
+      permissions:
+        - level: CAN_USE
+          group_name: users

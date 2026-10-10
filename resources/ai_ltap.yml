@@ -1,0 +1,88 @@
+resources:
+  schemas:
+    quilla_ai:
+      name: ${var.ai_schema}
+      catalog_name: ${var.catalog}
+      comment: Quilla AI — conhecimento PT/ES, busca híbrida e evidências governadas.
+      properties:
+        project: quilla
+        layer: ai
+        managed_by: dabs
+        data_classification: synthetic
+
+  jobs:
+    quilla_ltap_ai_search:
+      name: "[${bundle.target}] Quilla | LTAP & Regulatory AI Search"
+      description: Cura conhecimento PT/ES, sincroniza Lakebase Search e publica Vector Search híbrido com reranking.
+      max_concurrent_runs: 1
+      timeout_seconds: 21600
+      queue:
+        enabled: true
+      tags:
+        project: quilla
+        workload: ltap-ai-search
+        managed_by: dabs
+        data_classification: synthetic
+      tasks:
+        - task_key: build_regulatory_knowledge
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/ai/30_build_regulatory_knowledge.py
+            source: WORKSPACE
+            base_parameters: &ai_common_parameters
+              catalog: ${var.catalog}
+              silver_schema: ${var.silver_schema}
+              ai_schema: ${resources.schemas.quilla_ai.name}
+              lakebase_project: ${var.lakebase_project}
+              lakebase_database: ${var.lakebase_database}
+              vs_endpoint: ${var.vector_search_endpoint}
+              embedding_endpoint: ${var.embedding_endpoint}
+          environment_key: ai_search_env
+          timeout_seconds: 3600
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: sync_lakebase_search
+          depends_on:
+            - task_key: build_regulatory_knowledge
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/ai/31_sync_lakebase_search.py
+            source: WORKSPACE
+            base_parameters: *ai_common_parameters
+          environment_key: ai_search_env
+          timeout_seconds: 5400
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: create_vector_search
+          depends_on:
+            - task_key: build_regulatory_knowledge
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/ai/32_create_vector_search.py
+            source: WORKSPACE
+            base_parameters: *ai_common_parameters
+          environment_key: ai_search_env
+          timeout_seconds: 14400
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+        - task_key: validate_ltap_search
+          depends_on:
+            - task_key: sync_lakebase_search
+            - task_key: create_vector_search
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/ai/33_validate_ltap_search.py
+            source: WORKSPACE
+            base_parameters: *ai_common_parameters
+          environment_key: ai_search_env
+          timeout_seconds: 3600
+          max_retries: 1
+          min_retry_interval_millis: 30000
+
+      environments:
+        - environment_key: ai_search_env
+          spec:
+            client: "4"
+            dependencies:
+              - databricks-ai-search==0.76
+              - databricks-sdk==0.65.0
+              - psycopg[binary]==3.2.9
