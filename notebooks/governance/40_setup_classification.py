@@ -11,6 +11,7 @@ from databricks.sdk.service.dataclassification import (
     CatalogConfigSchemaNames,
     FieldMask,
 )
+from databricks.sdk.service.catalog import MonitorMetric, MonitorMetricType, MonitorTimeSeries
 from pyspark.sql import types as T
 
 
@@ -23,11 +24,17 @@ for name, default in {
     "ml_schema": "example_ml",
     "ai_schema": "example_ai",
     "governance_schema": "example_governance",
+    "monitoring_schema": "example_monitoring",
+    "sql_warehouse_id": "",
+    "monitor_assets_dir": "/Shared/quilla-monitoring/financial-events",
 }.items():
     dbutils.widgets.text(name, default)
 
 CATALOG = dbutils.widgets.get("catalog")
 GOVERNANCE_SCHEMA = dbutils.widgets.get("governance_schema")
+MONITORING_SCHEMA = dbutils.widgets.get("monitoring_schema")
+SQL_WAREHOUSE_ID = dbutils.widgets.get("sql_warehouse_id")
+MONITOR_ASSETS_DIR = dbutils.widgets.get("monitor_assets_dir")
 CLASSIFICATION_SCHEMAS = sorted(
     {
         dbutils.widgets.get("raw_schema"),
@@ -262,6 +269,75 @@ except NotFound:
         ),
     )
 
+financial_events_table = f"{CATALOG}.{dbutils.widgets.get('silver_schema')}.financial_events"
+monitor_output_schema = f"{CATALOG}.{MONITORING_SCHEMA}"
+metric_type = MonitorMetricType.CUSTOM_METRIC_TYPE_AGGREGATE
+custom_metrics = [
+    MonitorMetric(
+        type=metric_type,
+        name="quilla_risk_score_out_of_range_rate",
+        input_columns=["risk_score"],
+        definition=(
+            "avg(CASE WHEN `{{input_column}}` < 0 OR `{{input_column}}` > 1 "
+            "THEN 1.0 ELSE 0.0 END)"
+        ),
+        output_data_type='{"name":"output","type":"double","nullable":true,"metadata":{}}',
+    ),
+    MonitorMetric(
+        type=metric_type,
+        name="quilla_late_arrival_rate",
+        input_columns=[":table"],
+        definition=(
+            "avg(CASE WHEN unix_timestamp(ingested_at) - "
+            "unix_timestamp(event_ts_utc) > 300 THEN 1.0 ELSE 0.0 END)"
+        ),
+        output_data_type='{"name":"output","type":"double","nullable":true,"metadata":{}}',
+    ),
+    MonitorMetric(
+        type=metric_type,
+        name="quilla_country_currency_mismatch_rate",
+        input_columns=[":table"],
+        definition="""avg(CASE WHEN
+          (country_code = 'BR' AND currency_code = 'BRL') OR
+          (country_code = 'MX' AND currency_code = 'MXN') OR
+          (country_code = 'CO' AND currency_code = 'COP') OR
+          (country_code = 'AR' AND currency_code = 'ARS') OR
+          (country_code = 'CL' AND currency_code = 'CLP') OR
+          (country_code = 'PE' AND currency_code = 'PEN') OR
+          (country_code = 'EC' AND currency_code = 'USD') OR
+          (country_code = 'GT' AND currency_code = 'GTQ') OR
+          (country_code = 'DO' AND currency_code = 'DOP') OR
+          (country_code = 'CR' AND currency_code = 'CRC') OR
+          (country_code = 'PA' AND currency_code = 'PAB') OR
+          (country_code = 'UY' AND currency_code = 'UYU')
+        THEN 0.0 ELSE 1.0 END)""",
+        output_data_type='{"name":"output","type":"double","nullable":true,"metadata":{}}',
+    ),
+]
+time_series = MonitorTimeSeries(timestamp_col="event_ts_utc", granularities=["1 day"])
+try:
+    workspace.quality_monitors.get(financial_events_table)
+    workspace.quality_monitors.update(
+        financial_events_table,
+        monitor_output_schema,
+        custom_metrics=custom_metrics,
+        slicing_exprs=["country_code", "event_type", "event_status"],
+        time_series=time_series,
+    )
+    monitor_state = "UPDATED"
+except NotFound:
+    workspace.quality_monitors.create(
+        financial_events_table,
+        monitor_output_schema,
+        MONITOR_ASSETS_DIR,
+        custom_metrics=custom_metrics,
+        skip_builtin_dashboard=False,
+        slicing_exprs=["country_code", "event_type", "event_status"],
+        time_series=time_series,
+        warehouse_id=SQL_WAREHOUSE_ID,
+    )
+    monitor_state = "CREATED"
+
 run_at = datetime.now(timezone.utc).isoformat()
 print(
     json.dumps(
@@ -273,6 +349,7 @@ print(
             "classifier_specs": len(specs),
             "countries": len(COUNTRIES),
             "classification_schemas": updated.included_schemas.names,
+            "quality_monitor": monitor_state,
             "custom_classifier_execution": "UI_ONLY_BETA",
         },
         ensure_ascii=False,

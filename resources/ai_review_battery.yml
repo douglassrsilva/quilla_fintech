@@ -19,9 +19,9 @@ resources:
             notebook_path: ${workspace.file_path}/notebooks/ai/48_seed_rich_review_traces.py
             source: WORKSPACE
             base_parameters: &review_battery_parameters
-              catalog: ${var.catalog}
+              catalog: ${resources.catalogs.quilla.name}
               ai_schema: ${resources.schemas.quilla_ai.name}
-              sql_warehouse_id: ${var.sql_warehouse_id}
+              sql_warehouse_id: ${resources.sql_warehouses.quilla_serverless.id}
               experiment_path: /Users/${workspace.current_user.userName}/quilla-genai-${bundle.target}
               trace_table_prefix: quilla_genai_${bundle.target}
               review_release: ${var.genai_review_release}

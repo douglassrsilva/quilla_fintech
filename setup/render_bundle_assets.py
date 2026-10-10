@@ -22,16 +22,28 @@ PLACEHOLDERS = {
     "governance_schema": "example_governance",
     "monitoring_schema": "example_monitoring",
 }
+DEFAULTS = {
+    "catalog": "quilla_fintech_dev",
+    "schema": "quilla_raw",
+    "bronze_schema": "quilla_bronze",
+    "silver_schema": "quilla_silver",
+    "gold_schema": "quilla_gold",
+    "ml_schema": "quilla_ml",
+    "ai_schema": "quilla_ai",
+    "governance_schema": "quilla_governance",
+    "monitoring_schema": "quilla_monitoring",
+}
+TARGET_CATALOGS = {
+    "smoke": "quilla_fintech_smoke",
+    "demo": "quilla_fintech_demo",
+}
 SOURCE_TREES = ("sql", "dashboards", "genie_spaces")
 
 
-def configured_value(name: str, explicit: str | None) -> str:
+def configured_value(name: str, explicit: str | None, target: str) -> str:
     value = (explicit or os.getenv(f"DATABRICKS_BUNDLE_VAR_{name}", "")).strip()
     if not value or value == "REPLACE_ME":
-        raise ValueError(
-            f"Missing {name}; pass --{name.replace('_', '-')} or export "
-            f"DATABRICKS_BUNDLE_VAR_{name}"
-        )
+        value = TARGET_CATALOGS.get(target, DEFAULTS[name]) if name == "catalog" else DEFAULTS[name]
     if not IDENTIFIER.fullmatch(value):
         raise ValueError(f"Invalid Unity Catalog identifier for {name}: {value!r}")
     return value
@@ -47,12 +59,13 @@ def render_file(source: Path, target: Path, replacements: dict[str, str]) -> Non
 
 def main() -> None:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--target", choices=("smoke", "demo"), default="demo")
     for name in PLACEHOLDERS:
         parser.add_argument(f"--{name.replace('_', '-')}")
     args = parser.parse_args()
 
     values = {
-        name: configured_value(name, getattr(args, name))
+        name: configured_value(name, getattr(args, name), args.target)
         for name in PLACEHOLDERS
     }
     replacements = {

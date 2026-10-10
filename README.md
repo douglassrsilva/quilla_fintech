@@ -3,19 +3,19 @@
 Aplicação de referência da Quilla publicada em Databricks Apps. Os dados apresentados são
 sintéticos e existem apenas para demonstração, mas o Quilla IQ usa o backend e os serviços reais.
 
+Para instalar tudo em outro workspace, sem reutilizar IDs ou nomes do ambiente de origem,
+consulte a [guía de despliegue reproducible en español](docs/GUIA_DESPLIEGUE_ES.md).
+
 ## Configuração segura do ambiente
 
 O repositório não contém nomes reais de catálogos ou schemas, Warehouse IDs, resource IDs,
-URLs de workspace/App ou credenciais. Copie `.env.example` para `.env.local`, preencha os
-valores do seu ambiente e exporte as variáveis antes de validar ou publicar o bundle.
+URLs de workspace/App ou credenciais. O DAB cria catálogo, schemas, Volumes, SQL Warehouse,
+AI Search e Lakebase com defaults portáteis. Use `.env.local` somente para sobrescrever nomes
+em workspaces compartilhados ou configurar o endpoint regional opcional do Zerobus.
 
 ```bash
-cp .env.example .env.local
-set -a
-source .env.local
-set +a
-python3 setup/render_bundle_assets.py
-databricks bundle validate -t smoke --profile DEFAULT
+python3 setup/bootstrap_portable.py \
+  --profile DEFAULT --target smoke --validate-only
 ```
 
 O `resources/app.yml` é a fonte canônica da configuração do Databricks App. Faça deploy pelo
@@ -192,9 +192,10 @@ e [docs/ml_models.md](docs/ml_models.md).
 ## Lakebase LTAP e AI Search híbrido
 
 ```bash
-# 1) Recurso Lakebase Autoscaling ainda imperativo, mas idempotente e versionado
+# 1) O DAB cria o projeto, branch, endpoint, role e database; este passo inicializa o schema SQL
 DATABRICKS_AUTH_STORAGE=plaintext uv run --with 'psycopg[binary]==3.2.9' \
-  python setup/lakebase_bootstrap.py --profile DEFAULT
+  python setup/lakebase_bootstrap.py \
+  --profile DEFAULT --project quilla-ltap-demo --database quilla
 
 # 2) Curadoria UC + Lakebase Search e Vector Search em paralelo + reranking
 DATABRICKS_AUTH_STORAGE=plaintext databricks bundle run \

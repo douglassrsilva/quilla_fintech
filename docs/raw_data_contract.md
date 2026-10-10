@@ -8,7 +8,8 @@
 - Timestamps são armazenados em UTC e acompanhados pelo timezone do país quando relevante;
 - Chaves e documentos são tokens sintéticos, não identificadores financeiros reais;
 - Todos os datasets incluem `synthetic_flag=true` e/ou metadados equivalentes;
-- Saída: `/Volumes/example_catalog/quilla_raw/synthetic_landing/snapshot=<snapshot>/<dataset>`.
+- Saída padrão: `/Volumes/quilla_fintech_demo/quilla_raw/raw_landing/snapshot=<snapshot>/<dataset>`;
+  catálogo, schema e Volume podem ser sobrescritos por variáveis do bundle.
 
 ## Volumes do target demo
 
@@ -183,4 +184,3 @@ Em `financial_events`, sem alterar a contagem final:
 - pequenas variações de caixa, whitespace e versão de payload.
 
 Cada defeito material possui um registro correspondente em `quality_truth`.
-

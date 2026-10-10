@@ -16,7 +16,7 @@ resources:
       tasks:
         - task_key: create_business_metric_views
           sql_task:
-            warehouse_id: ${var.sql_warehouse_id}
+            warehouse_id: ${resources.sql_warehouses.quilla_serverless.id}
             file:
               path: ../.generated/sql/create_all_metric_views.sql
           timeout_seconds: 1800
@@ -27,7 +27,7 @@ resources:
           depends_on:
             - task_key: create_business_metric_views
           sql_task:
-            warehouse_id: ${var.sql_warehouse_id}
+            warehouse_id: ${resources.sql_warehouses.quilla_serverless.id}
             file:
               path: ../.generated/sql/validate_business_metric_views.sql
           timeout_seconds: 1800
@@ -38,7 +38,7 @@ resources:
           depends_on:
             - task_key: validate_business_metric_views
           sql_task:
-            warehouse_id: ${var.sql_warehouse_id}
+            warehouse_id: ${resources.sql_warehouses.quilla_serverless.id}
             file:
               path: ../.generated/sql/validate_dashboard_datasets.sql
           timeout_seconds: 1800
@@ -49,27 +49,27 @@ resources:
     quilla_executive_command_center:
       display_name: "[${bundle.target}] Quilla | Centro Executivo LATAM"
       file_path: ../.generated/dashboards/executive_command_center.lvdash.json
-      warehouse_id: ${var.sql_warehouse_id}
+      warehouse_id: ${resources.sql_warehouses.quilla_serverless.id}
       parent_path: ${workspace.root_path}/dashboards
       embed_credentials: true
 
     quilla_growth_profitability:
       display_name: "[${bundle.target}] Quilla | Growth & Profitabilidade"
       file_path: ../.generated/dashboards/growth_profitability.lvdash.json
-      warehouse_id: ${var.sql_warehouse_id}
+      warehouse_id: ${resources.sql_warehouses.quilla_serverless.id}
       parent_path: ${workspace.root_path}/dashboards
       embed_credentials: true
 
     quilla_wealth_macro:
       display_name: "[${bundle.target}] Quilla | Wealth & Macro Stress"
       file_path: ../.generated/dashboards/wealth_macro.lvdash.json
-      warehouse_id: ${var.sql_warehouse_id}
+      warehouse_id: ${resources.sql_warehouses.quilla_serverless.id}
       parent_path: ${workspace.root_path}/dashboards
       embed_credentials: true
 
     quilla_risk_trust:
       display_name: "[${bundle.target}] Quilla | Risco, Crédito & Confiança"
       file_path: ../.generated/dashboards/risk_trust.lvdash.json
-      warehouse_id: ${var.sql_warehouse_id}
+      warehouse_id: ${resources.sql_warehouses.quilla_serverless.id}
       parent_path: ${workspace.root_path}/dashboards
       embed_credentials: true

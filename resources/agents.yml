@@ -19,7 +19,7 @@ resources:
             notebook_path: ${workspace.file_path}/notebooks/ai/53_publish_governed_skills.py
             source: WORKSPACE
             base_parameters:
-              catalog: ${var.catalog}
+              catalog: ${resources.catalogs.quilla.name}
               ai_schema: ${resources.schemas.quilla_ai.name}
               skill_root: ${workspace.file_path}/agent_skills
           environment_key: governed_skills_env
@@ -52,7 +52,7 @@ resources:
             notebook_path: ${workspace.file_path}/notebooks/ai/50_publish_agent_contracts.py
             source: WORKSPACE
             base_parameters: &agent_parameters
-              catalog: ${var.catalog}
+              catalog: ${resources.catalogs.quilla.name}
               ai_schema: ${resources.schemas.quilla_ai.name}
               agent_release: ${var.agent_release}
               agent_model_endpoint: ${var.agent_model_endpoint}

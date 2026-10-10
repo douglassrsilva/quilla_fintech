@@ -1,0 +1,102 @@
+resources:
+  catalogs:
+    quilla:
+      name: ${var.catalog}
+      comment: Quilla — catálogo portátil criado pelo Databricks Asset Bundle.
+      properties:
+        project: quilla
+        managed_by: dabs
+        data_classification: synthetic
+
+  schemas:
+    quilla_raw:
+      name: ${var.schema}
+      catalog_name: ${resources.catalogs.quilla.name}
+      comment: Quilla Raw — landing imutável de dados sintéticos PT/ES.
+      properties:
+        project: quilla
+        layer: raw
+        managed_by: dabs
+
+  volumes:
+    quilla_raw_landing:
+      name: ${var.volume}
+      catalog_name: ${resources.catalogs.quilla.name}
+      schema_name: ${resources.schemas.quilla_raw.name}
+      volume_type: MANAGED
+      comment: Landing Parquet sintético e reproduzível da Quilla.
+
+    quilla_ml_landing:
+      name: ${var.ml_volume}
+      catalog_name: ${resources.catalogs.quilla.name}
+      schema_name: ${resources.schemas.quilla_raw.name}
+      volume_type: MANAGED
+      comment: Outcomes e cenários sintéticos usados pelo ciclo de ML.
+
+  sql_warehouses:
+    quilla_serverless:
+      name: "[${bundle.target}] Quilla | Serverless SQL"
+      cluster_size: 2X-Small
+      warehouse_type: PRO
+      enable_serverless_compute: true
+      enable_photon: true
+      auto_stop_mins: 10
+      min_num_clusters: 1
+      max_num_clusters: 1
+      permissions:
+        - level: CAN_USE
+          group_name: users
+        - level: CAN_USE
+          service_principal_name: ${resources.apps.quilla_app.service_principal_client_id}
+
+  vector_search_endpoints:
+    quilla_ai_search:
+      name: ${var.vector_search_endpoint}
+      endpoint_type: STANDARD
+
+  # Lakebase Autoscaling is Beta. These resources make the state store portable
+  # when the feature is enabled in the destination workspace.
+  postgres_projects:
+    quilla_ltap:
+      project_id: ${var.lakebase_project}
+      display_name: "[${bundle.target}] Quilla | LTAP Application State"
+      pg_version: 17
+      history_retention_duration: 604800s
+      default_endpoint_settings:
+        autoscaling_limit_min_cu: 0.5
+        autoscaling_limit_max_cu: 4
+        suspend_timeout_duration: 300s
+      purge_on_delete: false
+
+  postgres_branches:
+    quilla_ltap_branch:
+      branch_id: ${var.lakebase_branch}
+      parent: ${resources.postgres_projects.quilla_ltap.name}
+      no_expiry: true
+      replace_existing: true
+      purge_on_delete: false
+
+  postgres_endpoints:
+    quilla_ltap_endpoint:
+      endpoint_id: ${var.lakebase_endpoint}
+      parent: ${resources.postgres_branches.quilla_ltap_branch.name}
+      endpoint_type: ENDPOINT_TYPE_READ_WRITE
+      autoscaling_limit_min_cu: 0.5
+      autoscaling_limit_max_cu: 4
+      suspend_timeout_duration: 300s
+      replace_existing: true
+
+  postgres_roles:
+    quilla_ltap_owner:
+      role_id: quilla-owner
+      parent: ${resources.postgres_branches.quilla_ltap_branch.name}
+      postgres_role: quilla_owner
+      replace_existing: true
+
+  postgres_databases:
+    quilla_ltap_database:
+      database_id: ${var.lakebase_database}
+      parent: ${resources.postgres_branches.quilla_ltap_branch.name}
+      postgres_database: ${var.lakebase_database}
+      role: ${resources.postgres_roles.quilla_ltap_owner.name}
+      replace_existing: true

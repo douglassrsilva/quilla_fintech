@@ -2,7 +2,7 @@ resources:
   schemas:
     quilla_governance:
       name: ${var.governance_schema}
-      catalog_name: ${var.catalog}
+      catalog_name: ${resources.catalogs.quilla.name}
       comment: Quilla Governance — especificações de classificadores PT/ES e evidências auditáveis.
       properties:
         project: quilla
@@ -12,61 +12,12 @@ resources:
 
     quilla_monitoring:
       name: ${var.monitoring_schema}
-      catalog_name: ${var.catalog}
+      catalog_name: ${resources.catalogs.quilla.name}
       comment: Quilla Monitoring — métricas de perfil, drift e controles de qualidade.
       properties:
         project: quilla
         layer: monitoring
         managed_by: dabs
-
-  quality_monitors:
-    financial_events_quality:
-      table_name: ${var.catalog}.${var.silver_schema}.financial_events
-      assets_dir: ${workspace.root_path}/monitoring/financial_events
-      output_schema_name: ${var.catalog}.${resources.schemas.quilla_monitoring.name}
-      warehouse_id: ${var.sql_warehouse_id}
-      skip_builtin_dashboard: false
-      time_series:
-        timestamp_col: event_ts_utc
-        granularities:
-          - 1 day
-      slicing_exprs:
-        - country_code
-        - event_type
-        - event_status
-      custom_metrics:
-        - type: CUSTOM_METRIC_TYPE_AGGREGATE
-          name: quilla_risk_score_out_of_range_rate
-          input_columns:
-            - risk_score
-          definition: avg(CASE WHEN `{{input_column}}` < 0 OR `{{input_column}}` > 1 THEN 1.0 ELSE 0.0 END)
-          output_data_type: '{"name":"output","type":"double","nullable":true,"metadata":{}}'
-        - type: CUSTOM_METRIC_TYPE_AGGREGATE
-          name: quilla_late_arrival_rate
-          input_columns:
-            - ':table'
-          definition: avg(CASE WHEN unix_timestamp(ingested_at) - unix_timestamp(event_ts_utc) > 300 THEN 1.0 ELSE 0.0 END)
-          output_data_type: '{"name":"output","type":"double","nullable":true,"metadata":{}}'
-        - type: CUSTOM_METRIC_TYPE_AGGREGATE
-          name: quilla_country_currency_mismatch_rate
-          input_columns:
-            - ':table'
-          definition: >-
-            avg(CASE WHEN
-              (country_code = 'BR' AND currency_code = 'BRL') OR
-              (country_code = 'MX' AND currency_code = 'MXN') OR
-              (country_code = 'CO' AND currency_code = 'COP') OR
-              (country_code = 'AR' AND currency_code = 'ARS') OR
-              (country_code = 'CL' AND currency_code = 'CLP') OR
-              (country_code = 'PE' AND currency_code = 'PEN') OR
-              (country_code = 'EC' AND currency_code = 'USD') OR
-              (country_code = 'GT' AND currency_code = 'GTQ') OR
-              (country_code = 'DO' AND currency_code = 'DOP') OR
-              (country_code = 'CR' AND currency_code = 'CRC') OR
-              (country_code = 'PA' AND currency_code = 'PAB') OR
-              (country_code = 'UY' AND currency_code = 'UYU')
-            THEN 0.0 ELSE 1.0 END)
-          output_data_type: '{"name":"output","type":"double","nullable":true,"metadata":{}}'
 
   jobs:
     quilla_discovery_domain_associations:
@@ -85,7 +36,21 @@ resources:
             python_file: ../setup/assign_discovery_domains.py
             parameters:
               - --catalog
-              - ${var.catalog}
+              - ${resources.catalogs.quilla.name}
+              - --bronze-schema
+              - ${resources.schemas.quilla_bronze.name}
+              - --silver-schema
+              - ${resources.schemas.quilla_silver.name}
+              - --gold-schema
+              - ${resources.schemas.quilla_gold.name}
+              - --ml-schema
+              - ${resources.schemas.quilla_ml.name}
+              - --ai-schema
+              - ${resources.schemas.quilla_ai.name}
+              - --governance-schema
+              - ${resources.schemas.quilla_governance.name}
+              - --monitoring-schema
+              - ${resources.schemas.quilla_monitoring.name}
               - --app-id
               - ${resources.apps.quilla_app.id}
               - --dashboard-executive-id
@@ -133,7 +98,7 @@ resources:
           notebook_task:
             notebook_path: ../notebooks/governance/40_setup_classification.py
             base_parameters:
-              catalog: ${var.catalog}
+              catalog: ${resources.catalogs.quilla.name}
               raw_schema: ${var.schema}
               bronze_schema: ${var.bronze_schema}
               silver_schema: ${var.silver_schema}
@@ -141,6 +106,9 @@ resources:
               ml_schema: ${var.ml_schema}
               ai_schema: ${var.ai_schema}
               governance_schema: ${resources.schemas.quilla_governance.name}
+              monitoring_schema: ${resources.schemas.quilla_monitoring.name}
+              sql_warehouse_id: ${resources.sql_warehouses.quilla_serverless.id}
+              monitor_assets_dir: ${workspace.root_path}/monitoring/financial_events
           environment_key: governance_env
           timeout_seconds: 1800
 
@@ -150,7 +118,7 @@ resources:
           notebook_task:
             notebook_path: ../notebooks/governance/41_validate_governance.py
             base_parameters:
-              catalog: ${var.catalog}
+              catalog: ${resources.catalogs.quilla.name}
               silver_schema: ${var.silver_schema}
               governance_schema: ${resources.schemas.quilla_governance.name}
               monitoring_schema: ${resources.schemas.quilla_monitoring.name}

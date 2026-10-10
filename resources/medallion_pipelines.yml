@@ -2,7 +2,7 @@ resources:
   schemas:
     quilla_bronze:
       name: ${var.bronze_schema}
-      catalog_name: ${var.catalog}
+      catalog_name: ${resources.catalogs.quilla.name}
       comment: Quilla Bronze — Streaming Tables incrementais e fiéis ao landing sintético.
       properties:
         project: quilla
@@ -11,7 +11,7 @@ resources:
 
     quilla_silver:
       name: ${var.silver_schema}
-      catalog_name: ${var.catalog}
+      catalog_name: ${resources.catalogs.quilla.name}
       comment: Quilla Silver — dados deduplicados e validados por contratos DQX.
       properties:
         project: quilla
@@ -20,7 +20,7 @@ resources:
 
     quilla_gold:
       name: ${var.gold_schema}
-      catalog_name: ${var.catalog}
+      catalog_name: ${resources.catalogs.quilla.name}
       comment: Quilla Gold — materialized views e camada semântica governada.
       properties:
         project: quilla
@@ -30,7 +30,7 @@ resources:
   pipelines:
     quilla_bronze_pipeline:
       name: "[${bundle.target}] Quilla | 01 Bronze Auto Loader"
-      catalog: ${var.catalog}
+      catalog: ${resources.catalogs.quilla.name}
       schema: ${resources.schemas.quilla_bronze.name}
       serverless: true
       photon: true
@@ -42,15 +42,15 @@ resources:
         - file:
             path: ../pipelines/bronze/bronze_ingestion.py
       configuration:
-        quilla.catalog: ${var.catalog}
+        quilla.catalog: ${resources.catalogs.quilla.name}
         quilla.raw_schema: ${var.schema}
         quilla.raw_volume: ${var.volume}
         quilla.snapshot: ${var.snapshot}
-        quilla.zerobus_source_table: ${var.catalog}.${resources.schemas.quilla_bronze.name}.zerobus_financial_events
+        quilla.zerobus_source_table: ${resources.catalogs.quilla.name}.${resources.schemas.quilla_bronze.name}.zerobus_financial_events
 
     quilla_silver_pipeline:
       name: "[${bundle.target}] Quilla | 02 Silver DQX"
-      catalog: ${var.catalog}
+      catalog: ${resources.catalogs.quilla.name}
       schema: ${resources.schemas.quilla_silver.name}
       serverless: true
       photon: true
@@ -63,7 +63,7 @@ resources:
         - file:
             path: ../pipelines/silver/silver_quality.py
       configuration:
-        quilla.catalog: ${var.catalog}
+        quilla.catalog: ${resources.catalogs.quilla.name}
         quilla.bronze_schema: ${resources.schemas.quilla_bronze.name}
         quilla.snapshot: ${var.snapshot}
         quilla.contract_path: ${workspace.file_path}/contracts/silver_contracts.yml
@@ -74,7 +74,7 @@ resources:
 
     quilla_gold_pipeline:
       name: "[${bundle.target}] Quilla | 03 Gold Data Products"
-      catalog: ${var.catalog}
+      catalog: ${resources.catalogs.quilla.name}
       schema: ${resources.schemas.quilla_gold.name}
       serverless: true
       photon: true
@@ -86,7 +86,7 @@ resources:
         - file:
             path: ../pipelines/gold/gold_products.py
       configuration:
-        quilla.catalog: ${var.catalog}
+        quilla.catalog: ${resources.catalogs.quilla.name}
         quilla.bronze_schema: ${resources.schemas.quilla_bronze.name}
         quilla.silver_schema: ${resources.schemas.quilla_silver.name}
   jobs:
@@ -104,7 +104,7 @@ resources:
           notebook_task:
             notebook_path: ../notebooks/08_bootstrap_zerobus.py
             base_parameters:
-              catalog: ${var.catalog}
+              catalog: ${resources.catalogs.quilla.name}
               bronze_schema: ${resources.schemas.quilla_bronze.name}
               secret_scope: ${var.zerobus_secret_scope}
               service_principal_name: quilla-zerobus-demo
@@ -142,7 +142,7 @@ resources:
               - --workspace-url
               - ${workspace.host}
               - --table-name
-              - ${var.catalog}.${resources.schemas.quilla_bronze.name}.zerobus_financial_events
+              - ${resources.catalogs.quilla.name}.${resources.schemas.quilla_bronze.name}.zerobus_financial_events
               - --secret-scope
               - ${var.zerobus_secret_scope}
               - --event-count
@@ -186,7 +186,7 @@ resources:
           depends_on:
             - task_key: gold_realtime
           sql_task:
-            warehouse_id: ${var.sql_warehouse_id}
+            warehouse_id: ${resources.sql_warehouses.quilla_serverless.id}
             file:
               path: ../.generated/sql/create_metric_views.sql
           timeout_seconds: 1800
@@ -197,7 +197,7 @@ resources:
           notebook_task:
             notebook_path: ../notebooks/09_validate_realtime.py
             base_parameters:
-              catalog: ${var.catalog}
+              catalog: ${resources.catalogs.quilla.name}
               bronze_schema: ${resources.schemas.quilla_bronze.name}
               silver_schema: ${resources.schemas.quilla_silver.name}
               gold_schema: ${resources.schemas.quilla_gold.name}
@@ -259,7 +259,7 @@ resources:
           depends_on:
             - task_key: gold_materialized_views
           sql_task:
-            warehouse_id: ${var.sql_warehouse_id}
+            warehouse_id: ${resources.sql_warehouses.quilla_serverless.id}
             file:
               path: ../.generated/sql/create_metric_views.sql
           timeout_seconds: 1800

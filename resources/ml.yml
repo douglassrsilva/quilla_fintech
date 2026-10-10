@@ -2,7 +2,7 @@ resources:
   schemas:
     quilla_ml:
       name: ${var.ml_schema}
-      catalog_name: ${var.catalog}
+      catalog_name: ${resources.catalogs.quilla.name}
       comment: Quilla ML — Feature Store, evidências MLflow, modelos e inferências governadas.
       properties:
         project: quilla
@@ -29,7 +29,7 @@ resources:
             notebook_path: ${workspace.file_path}/notebooks/ml/10_setup_ml.py
             source: WORKSPACE
             base_parameters: &ml_common_parameters
-              catalog: ${var.catalog}
+              catalog: ${resources.catalogs.quilla.name}
               raw_schema: ${var.schema}
               silver_schema: ${var.silver_schema}
               ml_schema: ${resources.schemas.quilla_ml.name}

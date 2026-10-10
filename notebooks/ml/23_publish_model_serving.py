@@ -100,6 +100,17 @@ if pending:
     raise TimeoutError(f"Model Serving endpoints not ready within one hour: {sorted(pending)}")
 
 for endpoint_name, _, _ in published:
+    # The App invokes post-training endpoints with the caller's OBO token. Granting
+    # CAN_QUERY here avoids a circular dependency during the first bundle deploy.
+    workspace.api_client.do(
+        "PATCH",
+        f"/api/2.0/permissions/serving-endpoints/{endpoint_name}",
+        body={
+            "access_control_list": [
+                {"group_name": "users", "permission_level": "CAN_QUERY"}
+            ]
+        },
+    )
     workspace.api_client.do(
         "PUT",
         f"/api/2.0/serving-endpoints/{endpoint_name}/ai-gateway",

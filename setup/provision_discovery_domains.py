@@ -22,35 +22,35 @@ class DomainTag:
 
 DOMAIN_TAGS = (
     DomainTag(
-        "[Douglas] Quilla",
+        "Quilla",
         "Dominio raíz de la demo Quilla: productos gobernados de datos e IA para una fintech LATAM sintética.",
     ),
     DomainTag(
-        "[Douglas] Quilla/Cliente 360 y Crecimiento",
+        "Quilla/Cliente 360 y Crecimiento",
         "Cliente 360, segmentación, churn, LTV, campañas y recomendaciones Next Best Action de Quilla.",
     ),
     DomainTag(
-        "[Douglas] Quilla/Pagos y Tiempo Real",
+        "Quilla/Pagos y Tiempo Real",
         "Pagos, autorizaciones, rechazos, señales de fraude y eventos en tiempo real mediante Zerobus.",
     ),
     DomainTag(
-        "[Douglas] Quilla/Crédito y Precios",
+        "Quilla/Crédito y Precios",
         "Crédito responsable, capacidad de pago, riesgo, precios y escenarios macroeconómicos.",
     ),
     DomainTag(
-        "[Douglas] Quilla/Riesgo, Fraude y Cumplimiento",
+        "Quilla/Riesgo, Fraude y Cumplimiento",
         "Fraude, AML, KYC, siniestros, casos, controles regulatorios y confianza operacional.",
     ),
     DomainTag(
-        "[Douglas] Quilla/Inversiones y Patrimonio",
+        "Quilla/Inversiones y Patrimonio",
         "Portafolios, idoneidad, interacción, estrés macro e inteligencia para inversiones.",
     ),
     DomainTag(
-        "[Douglas] Quilla/Inteligencia Externa e IA",
+        "Quilla/Inteligencia Externa e IA",
         "Inteligencia externa, regulación, búsqueda híbrida, agentes, skills gobernadas y evaluación GenAI.",
     ),
     DomainTag(
-        "[Douglas] Quilla/Plataforma, Gobierno y Calidad",
+        "Quilla/Plataforma, Gobierno y Calidad",
         "Arquitectura medallion y LTAP, calidad, clasificación, linaje, MLflow y serving gobernados.",
     ),
 )

@@ -18,7 +18,7 @@ from urllib.parse import quote
 from databricks.sdk import WorkspaceClient
 
 
-ROOT = "[Douglas] Quilla"
+ROOT = "Quilla"
 CLIENT = f"{ROOT}/Cliente 360 y Crecimiento"
 PAYMENTS = f"{ROOT}/Pagos y Tiempo Real"
 CREDIT = f"{ROOT}/Crédito y Precios"
@@ -107,8 +107,22 @@ def _encoded(value: str) -> str:
     return quote(value, safe="")
 
 
-def _catalog_name(catalog: str, asset: CatalogAsset) -> str:
-    return f"{catalog}.{asset.relative_name}"
+def _catalog_name(args: argparse.Namespace, asset: CatalogAsset) -> str:
+    schema, separator, object_name = asset.relative_name.partition(".")
+    schema_map = {
+        "quilla_bronze": args.bronze_schema,
+        "quilla_silver": args.silver_schema,
+        "quilla_gold": args.gold_schema,
+        "quilla_ml": args.ml_schema,
+        "quilla_ai": args.ai_schema,
+        "quilla_governance": args.governance_schema,
+        "example_ai": args.ai_schema,
+        "example_governance": args.governance_schema,
+        "example_monitoring": args.monitoring_schema,
+    }
+    resolved_schema = schema_map.get(schema, schema)
+    suffix = f".{object_name}" if separator else ""
+    return f"{args.catalog}.{resolved_schema}{suffix}"
 
 
 def _existing_catalog_tags(client: WorkspaceClient, entity_type: str, entity_name: str) -> set[str]:
@@ -234,6 +248,13 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--profile", help="CLI profile for local execution; omit inside a DAB job")
     parser.add_argument("--catalog", default="example_catalog")
+    parser.add_argument("--bronze-schema", default="quilla_bronze")
+    parser.add_argument("--silver-schema", default="quilla_silver")
+    parser.add_argument("--gold-schema", default="quilla_gold")
+    parser.add_argument("--ml-schema", default="quilla_ml")
+    parser.add_argument("--ai-schema", default="quilla_ai")
+    parser.add_argument("--governance-schema", default="quilla_governance")
+    parser.add_argument("--monitoring-schema", default="quilla_monitoring")
     parser.add_argument("--dry-run", action="store_true")
     for argument in (
         "app_id",
@@ -257,7 +278,7 @@ def main() -> None:
     outcomes = []
     failures = []
     for asset in CATALOG_ASSETS:
-        entity_name = _catalog_name(args.catalog, asset)
+        entity_name = _catalog_name(args, asset)
         for tag_key in asset.domains:
             try:
                 state = _ensure_catalog_assignment(

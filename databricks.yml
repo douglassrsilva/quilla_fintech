@@ -1,6 +1,11 @@
 bundle:
   name: quilla-financial-intelligence
 
+# SQL, dashboards and Genie assets are rendered with the exact schema names.
+# Keep those names stable also in development mode; target isolation is done by catalog.
+experimental:
+  skip_name_prefix_for_schema: true
+
 include:
   - resources/*.yml
 
@@ -18,21 +23,29 @@ sync:
 
 variables:
   catalog:
-    description: Required Unity Catalog catalog. Supply with --var or DATABRICKS_BUNDLE_VAR_catalog.
+    description: Unity Catalog catalog created and managed by this bundle.
+    default: quilla_fintech_dev
   schema:
-    description: Required schema for raw synthetic assets.
+    description: Schema for raw synthetic assets.
+    default: quilla_raw
   bronze_schema:
-    description: Required Unity Catalog schema for Auto Loader streaming tables.
+    description: Unity Catalog schema for Auto Loader streaming tables.
+    default: quilla_bronze
   silver_schema:
-    description: Required Unity Catalog schema for contract-validated data products.
+    description: Unity Catalog schema for contract-validated data products.
+    default: quilla_silver
   gold_schema:
-    description: Required Unity Catalog schema for materialized and metric views.
+    description: Unity Catalog schema for materialized and metric views.
+    default: quilla_gold
   governance_schema:
-    description: Required Unity Catalog schema for classification specifications and governance evidence.
+    description: Unity Catalog schema for classification specifications and governance evidence.
+    default: quilla_governance
   monitoring_schema:
-    description: Required Unity Catalog schema for Data Quality Monitoring profile and drift metrics.
+    description: Unity Catalog schema for Data Quality Monitoring profile and drift metrics.
+    default: quilla_monitoring
   volume:
-    description: Required Unity Catalog Volume used as the Parquet landing zone.
+    description: Unity Catalog Volume created for the Parquet landing zone.
+    default: raw_landing
   snapshot:
     description: Immutable logical snapshot date.
     default: "2026-08-31"
@@ -65,17 +78,18 @@ variables:
     default: "100000"
   document_rows:
     default: "25000"
-  sql_warehouse_id:
-    description: Required SQL Warehouse ID used to create and validate Metric Views.
   zerobus_endpoint:
-    description: Required regional Zerobus Ingest endpoint for the workspace.
+    description: Optional regional Zerobus endpoint. Required only when running the realtime simulator.
+    default: ""
   zerobus_secret_scope:
     description: Workspace secret scope bootstrapped for the Zerobus producer.
     default: quilla-zerobus
   ml_schema:
-    description: Required Unity Catalog schema for Feature Store, MLflow evidence and registered models.
+    description: Unity Catalog schema for Feature Store, MLflow evidence and registered models.
+    default: quilla_ml
   ml_volume:
-    description: Required governed Volume for immutable ML outcome and scenario data.
+    description: Governed Volume created for immutable ML outcome and scenario data.
+    default: ml_landing
   ml_snapshot:
     description: Logical snapshot for ML datasets and evidence isolation.
     default: "2026-08-31"
@@ -100,17 +114,14 @@ variables:
   ml_interaction_rows:
     default: "100000"
   ai_schema:
-    description: Required Unity Catalog schema for governed PT/ES knowledge and AI Search evidence.
+    description: Unity Catalog schema for governed PT/ES knowledge and AI Search evidence.
+    default: quilla_ai
   lakebase_project:
     description: Lakebase Autoscaling project used for Quilla LTAP application state.
     default: quilla-ltap
   lakebase_database:
     description: PostgreSQL database inside the Quilla Lakebase project.
     default: quilla
-  lakebase_database_resource_id:
-    description: Required Lakebase API resource ID whose physical database is lakebase_database.
-  lakebase_owner_role:
-    description: Required Lakebase role that owns the API database resource.
   lakebase_branch:
     description: Lakebase branch used by the conversation ledger.
     default: production
@@ -119,7 +130,7 @@ variables:
     default: primary
   vector_search_endpoint:
     description: Vector Search endpoint for hybrid regulatory retrieval.
-    default: quilla-ai-search
+    default: quilla-ai-search-dev
   embedding_endpoint:
     description: Multilingual embedding endpoint used by Delta Sync.
     default: databricks-qwen3-embedding-0-6b
@@ -179,6 +190,9 @@ targets:
     workspace:
       root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
     variables:
+      catalog: quilla_fintech_smoke
+      lakebase_project: quilla-ltap-smoke
+      vector_search_endpoint: quilla-ai-search-smoke
       snapshot: "smoke-2026-08-31"
       event_rows: "12000"
       party_rows: "1200"
@@ -218,3 +232,7 @@ targets:
     mode: production
     workspace:
       root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      catalog: quilla_fintech_demo
+      lakebase_project: quilla-ltap-demo
+      vector_search_endpoint: quilla-ai-search-demo

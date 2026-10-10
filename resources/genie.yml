@@ -3,41 +3,41 @@ resources:
     quilla_executive_regional:
       title: "[${bundle.target}] Quilla | Executivo & Regional"
       description: "Visão executiva PT/ES de performance, risco, crédito, clientes e qualidade nos 12 mercados da Quilla. Dados 100% sintéticos."
-      warehouse_id: ${var.sql_warehouse_id}
+      warehouse_id: ${resources.sql_warehouses.quilla_serverless.id}
       parent_path: ${workspace.root_path}/genie
       file_path: ../.generated/genie_spaces/executive_regional.geniespace.json
 
     quilla_payments_performance:
       title: "[${bundle.target}] Quilla | Pagamentos & Performance"
       description: "Análise PT/ES de volume, aprovação, recusas, fraude e atividade financeira por país, canal e período. Dados 100% sintéticos."
-      warehouse_id: ${var.sql_warehouse_id}
+      warehouse_id: ${resources.sql_warehouses.quilla_serverless.id}
       parent_path: ${workspace.root_path}/genie
       file_path: ../.generated/genie_spaces/payments_performance.geniespace.json
 
     quilla_risk_fraud:
       title: "[${bundle.target}] Quilla | Risco & Fraude"
       description: "Operação PT/ES de alertas, exposição, confirmações e falsos positivos por mercado. Dados 100% sintéticos."
-      warehouse_id: ${var.sql_warehouse_id}
+      warehouse_id: ${resources.sql_warehouses.quilla_serverless.id}
       parent_path: ${workspace.root_path}/genie
       file_path: ../.generated/genie_spaces/risk_fraud.geniespace.json
 
     quilla_responsible_credit:
       title: "[${bundle.target}] Quilla | Crédito Responsável"
       description: "Funil PT/ES de crédito, aprovação, taxas, políticas e exposição por país e produto. Dados 100% sintéticos."
-      warehouse_id: ${var.sql_warehouse_id}
+      warehouse_id: ${resources.sql_warehouses.quilla_serverless.id}
       parent_path: ${workspace.root_path}/genie
       file_path: ../.generated/genie_spaces/responsible_credit.geniespace.json
 
     quilla_customer_operations:
       title: "[${bundle.target}] Quilla | Cliente & Operações"
       description: "Customer 360 PT/ES com agregação segura e análise individual somente por party_id sintético exato, sem contatos ou documentos. Dados 100% sintéticos."
-      warehouse_id: ${var.sql_warehouse_id}
+      warehouse_id: ${resources.sql_warehouses.quilla_serverless.id}
       parent_path: ${workspace.root_path}/genie
       file_path: ../.generated/genie_spaces/customer_operations.geniespace.json
 
     quilla_growth_wealth:
       title: "[${bundle.target}] Quilla | Growth & Wealth"
       description: "Crescimento, pricing, churn, valor, investimentos, suitability e macro PT/ES sobre Metric Views Gold governadas. Dados 100% sintéticos."
-      warehouse_id: ${var.sql_warehouse_id}
+      warehouse_id: ${resources.sql_warehouses.quilla_serverless.id}
       parent_path: ${workspace.root_path}/genie
       file_path: ../.generated/genie_spaces/growth_wealth.geniespace.json

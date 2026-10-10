@@ -118,9 +118,9 @@ async def _cohort_score(country_code: str, user_authorization: str | None) -> di
         "POST",
         f"/serving-endpoints/{NEXT_BEST_ACTION_ENDPOINT}/invocations",
         body={"dataframe_records": [features]},
-        # The endpoint is an App resource. Scoring uses the bound service identity;
-        # the initiating human and OBO-filtered SQL statement remain in the audit trail.
-        user_authorization=None,
+        # The endpoint is created after model training. OBO avoids a hard deploy-time
+        # dependency from the App to an endpoint that does not exist in a clean workspace.
+        user_authorization=user_authorization,
         timeout=30.0,
     )
     elapsed_ms = round((perf_counter() - started_at) * 1000)
@@ -136,7 +136,7 @@ async def _cohort_score(country_code: str, user_authorization: str | None) -> di
         "input_fields": list(features),
         "latency_ms": elapsed_ms,
         "scored_at": datetime.now(timezone.utc).isoformat(),
-        "authentication_scope": "app_service_principal",
+        "authentication_scope": "user_obo",
         "scope": "synthetic_cohort",
     }
 

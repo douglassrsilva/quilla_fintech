@@ -91,9 +91,9 @@ DATABRICKS_AUTH_STORAGE=plaintext databricks jobs repair-run <run-id> \
 - repair: `<resource-id>`;
 - estado final: `SUCCESS`;
 - experimento: `<resource-id>`;
-- baseline MLflow run: `75242112b7fa42af9df9c9f9ebb5579d`;
-- candidate MLflow run: `d47c56cc2cce4bdba7eac2c70dc71e77`;
-- semantic MLflow run: `146c2bc1128240c4a1f4f40c2cf9e497`;
+- baseline MLflow run: gerado e registrado no workspace de destino;
+- candidate MLflow run: gerado e registrado no workspace de destino;
+- semantic MLflow run: gerado e registrado no workspace de destino;
 - golden/semantic: `72 / 12` registros;
 - controles melhorados: `5`;
 - decisão: `APPROVED`.

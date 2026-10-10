@@ -166,8 +166,8 @@ e somente a task com falha e suas dependentes devem ser reprocessadas.
 ### Evidência de avaliação offline GenAI
 
 - Golden datasets UC: 72 casos completos e 12 casos semânticos, PT/ES e 12 países;
-- Evaluation Runs: baseline `75242112b7fa42af9df9c9f9ebb5579d`, candidate
-  `d47c56cc2cce4bdba7eac2c70dc71e77` e semantic `146c2bc1128240c4a1f4f40c2cf9e497`;
+- Evaluation Runs: baseline, candidate e semantic; os IDs são gerados no workspace de destino
+  e registrados nas tabelas de evidência do próprio deploy;
 - Candidate melhorou cinco controles e recebeu decisão `APPROVED`;
 - Run original `<resource-id>`, repair `<resource-id>`, `SUCCESS`.
 

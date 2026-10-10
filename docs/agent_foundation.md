@@ -99,9 +99,12 @@ python3 setup/test_external_intelligence_conversation.py --profile DEFAULT
 O teste de três perguntas consecutivas foi concluído com `PASSED` no endpoint
 `<legacy-supervisor-endpoint>`, preservando 18 itens de histórico:
 
-- turno 1: `resp_70d951e027174819a2cbdb0c328431ba`, duas aprovações Web Search;
-- turno 2: `resp_c1f4c196dc604f578e5f0544d03354c4`, nenhuma nova busca e contexto preservado;
-- turno 3: `resp_2b47a78fa0a34e0d818adbb1c04a3a35`, duas novas buscas para México e Chile.
+- turno 1: duas aprovações Web Search;
+- turno 2: nenhuma nova busca e contexto preservado;
+- turno 3: duas novas buscas para México e Chile.
+
+Os IDs das Responses são efêmeros e são gerados novamente em cada workspace; por isso não
+fazem parte do repositório.
 
 O cliente deve intercalar cada `mcp_approval_response` imediatamente após o respectivo
 `mcp_approval_request`. Enviar aprovações em bloco ou usar apenas `previous_response_id`

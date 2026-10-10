@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Provision and initialize Quilla's Lakebase Autoscaling LTAP store.
 
-This script covers the Lakebase Autoscaling resources that are not yet
-declarable by Databricks Asset Bundles. It is safe to run repeatedly.
+The Databricks Asset Bundle creates the Lakebase Autoscaling hierarchy. This
+idempotent script initializes the PostgreSQL application schema after deploy
+and remains compatible with projects created before they became DAB resources.
 """
 
 from __future__ import annotations

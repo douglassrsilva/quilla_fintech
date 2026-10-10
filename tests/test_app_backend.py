@@ -304,7 +304,7 @@ class BackendContractTests(unittest.TestCase):
             )
         self.assertEqual(response.status_code, 422)
 
-    def test_cohort_score_uses_bound_endpoint_identity_and_returns_safe_feature_evidence(self):
+    def test_cohort_score_uses_obo_endpoint_identity_and_returns_safe_feature_evidence(self):
         from server import platform
 
         columns = [
@@ -328,9 +328,9 @@ class BackendContractTests(unittest.TestCase):
         self.assertEqual(score["prediction"], "investment")
         self.assertEqual(score["feature_snapshot"]["country_code"], "BR")
         self.assertNotIn("party_id", score["feature_snapshot"])
-        self.assertEqual(score["authentication_scope"], "app_service_principal")
+        self.assertEqual(score["authentication_scope"], "user_obo")
         self.assertEqual(statement.await_args.args[1], "Bearer user")
-        self.assertIsNone(request.await_args.kwargs["user_authorization"])
+        self.assertEqual(request.await_args.kwargs["user_authorization"], "Bearer user")
 
     def test_realtime_control_room_starts_and_reads_job_without_validator_job(self):
         job_run = {

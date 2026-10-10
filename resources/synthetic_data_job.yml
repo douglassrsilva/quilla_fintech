@@ -16,7 +16,7 @@ resources:
 
       parameters:
         - name: catalog
-          default: ${var.catalog}
+          default: ${resources.catalogs.quilla.name}
         - name: schema
           default: ${var.schema}
         - name: volume
@@ -32,7 +32,7 @@ resources:
             notebook_path: ${workspace.file_path}/notebooks/00_setup_volume.py
             source: WORKSPACE
             base_parameters:
-              catalog: ${var.catalog}
+              catalog: ${resources.catalogs.quilla.name}
               schema: ${var.schema}
               volume: ${var.volume}
               snapshot: ${var.snapshot}
@@ -48,7 +48,7 @@ resources:
             notebook_path: ${workspace.file_path}/notebooks/01_generate_reference.py
             source: WORKSPACE
             base_parameters:
-              catalog: ${var.catalog}
+              catalog: ${resources.catalogs.quilla.name}
               schema: ${var.schema}
               volume: ${var.volume}
               snapshot: ${var.snapshot}
@@ -64,7 +64,7 @@ resources:
             notebook_path: ${workspace.file_path}/notebooks/02_generate_parties.py
             source: WORKSPACE
             base_parameters:
-              catalog: ${var.catalog}
+              catalog: ${resources.catalogs.quilla.name}
               schema: ${var.schema}
               volume: ${var.volume}
               snapshot: ${var.snapshot}
@@ -81,7 +81,7 @@ resources:
             notebook_path: ${workspace.file_path}/notebooks/03_generate_banking.py
             source: WORKSPACE
             base_parameters:
-              catalog: ${var.catalog}
+              catalog: ${resources.catalogs.quilla.name}
               schema: ${var.schema}
               volume: ${var.volume}
               snapshot: ${var.snapshot}
@@ -102,7 +102,7 @@ resources:
             notebook_path: ${workspace.file_path}/notebooks/04_generate_financial_events.py
             source: WORKSPACE
             base_parameters:
-              catalog: ${var.catalog}
+              catalog: ${resources.catalogs.quilla.name}
               schema: ${var.schema}
               volume: ${var.volume}
               snapshot: ${var.snapshot}
@@ -124,7 +124,7 @@ resources:
             notebook_path: ${workspace.file_path}/notebooks/05_generate_lending_insurance.py
             source: WORKSPACE
             base_parameters:
-              catalog: ${var.catalog}
+              catalog: ${resources.catalogs.quilla.name}
               schema: ${var.schema}
               volume: ${var.volume}
               snapshot: ${var.snapshot}
@@ -146,7 +146,7 @@ resources:
             notebook_path: ${workspace.file_path}/notebooks/06_generate_risk_engagement.py
             source: WORKSPACE
             base_parameters:
-              catalog: ${var.catalog}
+              catalog: ${resources.catalogs.quilla.name}
               schema: ${var.schema}
               volume: ${var.volume}
               snapshot: ${var.snapshot}
@@ -169,7 +169,7 @@ resources:
             notebook_path: ${workspace.file_path}/notebooks/07_validate_and_manifest.py
             source: WORKSPACE
             base_parameters:
-              catalog: ${var.catalog}
+              catalog: ${resources.catalogs.quilla.name}
               schema: ${var.schema}
               volume: ${var.volume}
               snapshot: ${var.snapshot}

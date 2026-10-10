@@ -36,6 +36,11 @@ país, tipo e status. Além do perfil e drift nativos, publica três métricas d
 O monitor usa compute serverless e grava profile/drift em `quilla_monitoring`. O monitor não
 substitui DQX e não modifica a tabela observada.
 
+Para permitir um deploy realmente novo, o monitor não é criado durante o primeiro
+`bundle deploy`: a tabela Silver ainda não existe nesse momento. O job idempotente
+`quilla_governance_bootstrap`, executado depois de `quilla_medallion`, cria ou atualiza o
+monitor usando o Warehouse e os schemas que o próprio DAB provisionou.
+
 ## Testes unitários nativos de Lakeflow Pipelines
 
 O pipeline Silver usa canal `PREVIEW`, requisito da Beta. O arquivo

@@ -1,14 +1,4 @@
 resources:
-  postgres_databases:
-    quilla_ltap_database:
-      database_id: ${var.lakebase_database_resource_id}
-      parent: projects/${var.lakebase_project}/branches/${var.lakebase_branch}
-      postgres_database: ${var.lakebase_database}
-      role: ${var.lakebase_owner_role}
-      replace_existing: true
-      lifecycle:
-        prevent_destroy: true
-
   apps:
     quilla_app:
       name: quilla-${bundle.target}
@@ -33,7 +23,7 @@ resources:
           - name: QUILLA_OBO_REQUIRED
             value: "true"
           - name: QUILLA_CATALOG
-            value: ${var.catalog}
+            value: ${resources.catalogs.quilla.name}
           - name: QUILLA_GOLD_SCHEMA
             value: ${var.gold_schema}
           - name: QUILLA_ML_SCHEMA
@@ -41,17 +31,17 @@ resources:
           - name: QUILLA_AI_SCHEMA
             value: ${var.ai_schema}
           - name: QUILLA_SQL_WAREHOUSE_ID
-            value: ${var.sql_warehouse_id}
+            value: ${resources.sql_warehouses.quilla_serverless.id}
           - name: QUILLA_GATEWAY_PRIMARY_SERVICE
             value: ${var.primary_model_service}
           - name: QUILLA_GATEWAY_GUARD_SERVICE
             value: ${var.guard_judge_model_service}
           - name: QUILLA_PRIMARY_MODEL
-            value: ${var.catalog}.${var.ai_schema}.${var.primary_model_service}
+            value: ${resources.catalogs.quilla.name}.${var.ai_schema}.${var.primary_model_service}
           - name: QUILLA_VERIFIER_MODEL
-            value: ${var.catalog}.${var.ai_schema}.${var.verifier_model_service}
+            value: ${resources.catalogs.quilla.name}.${var.ai_schema}.${var.verifier_model_service}
           - name: QUILLA_LONG_CONTEXT_MODEL
-            value: ${var.catalog}.${var.ai_schema}.${var.long_context_model_service}
+            value: ${resources.catalogs.quilla.name}.${var.ai_schema}.${var.long_context_model_service}
           - name: QUILLA_SUPERVISOR_RELEASE
             value: ${var.supervisor_release}
           - name: QUILLA_TENANT_ID
@@ -106,19 +96,14 @@ resources:
         - name: lakebase
           description: Memória conversacional e estado LTAP
           postgres:
-            branch: projects/${var.lakebase_project}/branches/${var.lakebase_branch}
-            database: projects/${var.lakebase_project}/branches/${var.lakebase_branch}/databases/${resources.postgres_databases.quilla_ltap_database.database_id}
+            branch: ${resources.postgres_branches.quilla_ltap_branch.name}
+            database: ${resources.postgres_databases.quilla_ltap_database.name}
             permission: CAN_CONNECT_AND_CREATE
         - name: analytics-warehouse
           description: Camada semântica e consultas analíticas do App
           sql_warehouse:
-            id: ${var.sql_warehouse_id}
+            id: ${resources.sql_warehouses.quilla_serverless.id}
             permission: CAN_USE
-        - name: next-best-action
-          description: Champion MLflow para scoring online de próxima melhor ação
-          serving_endpoint:
-            name: quilla-next-best-action
-            permission: CAN_QUERY
         - name: realtime-simulator
           description: Simulador Zerobus e atualização incremental Medallion
           job:

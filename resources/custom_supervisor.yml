@@ -18,7 +18,7 @@ resources:
             notebook_path: ${workspace.file_path}/notebooks/ai/59_setup_unity_ai_gateway.py
             source: WORKSPACE
             base_parameters:
-              catalog: ${var.catalog}
+              catalog: ${resources.catalogs.quilla.name}
               ai_schema: ${resources.schemas.quilla_ai.name}
               judge_model_service: ${var.guard_judge_model_service}
               primary_model_service: ${var.primary_model_service}
@@ -54,7 +54,7 @@ resources:
             notebook_path: ${workspace.file_path}/notebooks/ai/59_setup_unity_ai_gateway.py
             source: WORKSPACE
             base_parameters:
-              catalog: ${var.catalog}
+              catalog: ${resources.catalogs.quilla.name}
               ai_schema: ${resources.schemas.quilla_ai.name}
               judge_model_service: ${var.guard_judge_model_service}
               primary_model_service: ${var.primary_model_service}
@@ -72,7 +72,7 @@ resources:
             notebook_path: ${workspace.file_path}/notebooks/ai/60_register_custom_supervisor.py
             source: WORKSPACE
             base_parameters: &supervisor_parameters
-              catalog: ${var.catalog}
+              catalog: ${resources.catalogs.quilla.name}
               ai_schema: ${resources.schemas.quilla_ai.name}
               supervisor_model_name: ${var.supervisor_model_name}
               supervisor_endpoint_name: ${var.supervisor_endpoint_name}
@@ -87,9 +87,9 @@ resources:
               lakebase_database: ${var.lakebase_database}
               lakebase_branch: ${var.lakebase_branch}
               lakebase_endpoint: ${var.lakebase_endpoint}
-              primary_model: "${var.catalog}.${resources.schemas.quilla_ai.name}.${var.primary_model_service}"
-              verifier_model: "${var.catalog}.${resources.schemas.quilla_ai.name}.${var.verifier_model_service}"
-              long_context_model: "${var.catalog}.${resources.schemas.quilla_ai.name}.${var.long_context_model_service}"
+              primary_model: "${resources.catalogs.quilla.name}.${resources.schemas.quilla_ai.name}.${var.primary_model_service}"
+              verifier_model: "${resources.catalogs.quilla.name}.${resources.schemas.quilla_ai.name}.${var.verifier_model_service}"
+              long_context_model: "${resources.catalogs.quilla.name}.${resources.schemas.quilla_ai.name}.${var.long_context_model_service}"
               genie_executive_regional: ${resources.genie_spaces.quilla_executive_regional.id}
               genie_payments_performance: ${resources.genie_spaces.quilla_payments_performance.id}
               genie_risk_fraud: ${resources.genie_spaces.quilla_risk_fraud.id}
