@@ -682,6 +682,13 @@ async def business_overview(
 
 
 async def _serving_state(user_authorization: str | None) -> tuple[str, str]:
+    if settings.runtime_mode == "in_process":
+        try:
+            import agents  # noqa: F401
+            import mlflow  # noqa: F401
+        except ImportError as exc:
+            return "unavailable", f"runtime dependency missing: {exc.name}"
+        return "operational", "MLflow ResponsesAgent + OpenAI Agents SDK in-process"
     host, service_authorization = await asyncio.to_thread(_workspace_auth)
     authorization = user_authorization or service_authorization
     async with httpx.AsyncClient(timeout=httpx.Timeout(10.0, connect=4.0)) as client:

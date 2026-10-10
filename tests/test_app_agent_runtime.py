@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import asyncio
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
@@ -100,6 +101,100 @@ class AppAgentRuntimeTests(unittest.TestCase):
     def test_openai_agents_sdk_runtime_dependency_is_importable(self):
         classes = AgentsSDKGateway._sdk_classes()
         self.assertEqual(len(classes), 7)
+
+    def test_agents_sdk_adapter_passes_obo_to_gateway_and_genie_mcp(self):
+        captured = {}
+
+        class FakeServer:
+            def __init__(self, params, **kwargs):
+                captured["mcp_params"] = params
+                captured["mcp_kwargs"] = kwargs
+
+            async def __aenter__(self):
+                captured["connected"] = True
+                return self
+
+            async def __aexit__(self, *_args):
+                return False
+
+        class FakeOpenAI:
+            def __init__(self, **kwargs):
+                captured["openai"] = kwargs
+
+        class FakeModel:
+            def __init__(self, **kwargs):
+                captured["model"] = kwargs
+
+        class FakeAgent:
+            def __init__(self, **kwargs):
+                captured["agent"] = kwargs
+
+        class FakeRunner:
+            @staticmethod
+            async def run(agent, transcript, **kwargs):
+                captured["run"] = (agent, transcript, kwargs)
+                raw = {"type": "mcp_tool_call", "name": "query_space", "server_label": "genie_executive"}
+                return SimpleNamespace(final_output="Resposta governada.", new_items=[SimpleNamespace(type="tool_call_item", raw_item=raw)])
+
+        class FakeSettings:
+            def __init__(self, **kwargs): captured["model_settings"] = kwargs
+
+        class FakeRunConfig:
+            def __init__(self, **kwargs): captured["run_config"] = kwargs
+
+        auth = DatabricksAuth(
+            authorization="Bearer obo-user-token",
+            workspace_host="https://workspace.example",
+        )
+        gateway = AgentsSDKGateway(auth)
+        toolbox = SimpleNamespace(
+            clients={
+                "genie_executive": SimpleNamespace(
+                    server=McpServer(
+                        "genie_executive",
+                        "/api/2.0/mcp/genie/space-id",
+                        "analytics",
+                    )
+                )
+            },
+            discovery_warnings=[],
+        )
+        classes = (
+            FakeAgent,
+            FakeSettings,
+            FakeModel,
+            FakeRunConfig,
+            FakeRunner,
+            FakeServer,
+            FakeOpenAI,
+        )
+        with patch.object(gateway, "_sdk_classes", return_value=classes):
+            result = asyncio.run(gateway._run_agent_sdk(
+                "catalog.schema.quilla-supervisor-primary",
+                [
+                    {"role": "system", "content": "Responda em PT-BR."},
+                    {"role": "user", "content": "Mostre o volume regional."},
+                ],
+                toolbox,
+                max_rounds=4,
+                max_output_tokens=800,
+            ))
+        self.assertEqual(captured["openai"]["api_key"], "obo-user-token")
+        self.assertEqual(
+            captured["openai"]["base_url"],
+            "https://workspace.example/ai-gateway/mlflow/v1",
+        )
+        self.assertEqual(
+            captured["mcp_params"]["url"],
+            "https://workspace.example/api/2.0/mcp/genie/space-id",
+        )
+        self.assertEqual(
+            captured["mcp_params"]["headers"]["Authorization"],
+            "Bearer obo-user-token",
+        )
+        self.assertTrue(captured["run_config"]["tracing_disabled"])
+        self.assertEqual(result.text, "Resposta governada.")
+        self.assertEqual(result.evidence[0].server, "genie_executive")
 
 
 class InProcessOboTests(unittest.IsolatedAsyncioTestCase):
